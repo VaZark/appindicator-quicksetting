@@ -17,7 +17,11 @@ export const SNIStatus = Object.freeze({
 
 
 export class StatusNotifierItem extends Signals.EventEmitter {
-    constructor(busName, objectPath, service = null) {
+    constructor(
+        busName,
+        objectPath,
+        service = null
+    ) {
         super();
 
         this.busName = busName;
@@ -37,37 +41,34 @@ export class StatusNotifierItem extends Signals.EventEmitter {
             null
         );
 
-        this._propertiesChangedId =
-            this._proxy.connect(
-                'g-properties-changed',
-                (_proxy, changed, invalidated) => {
-                    this._onPropertiesChanged(
-                        changed,
-                        invalidated
-                    );
-                }
-            );
+        this._propertiesChangedId = this._proxy.connect(
+            'g-properties-changed',
+            (_proxy, changed, invalidated) => {
+                this._onPropertiesChanged(
+                    changed,
+                    invalidated
+                );
+            }
+        );
 
-        this._signalId =
-            this._proxy.connect(
-                'g-signal',
-                (_proxy, sender, signal, params) => {
-                    this._onSignal(
-                        sender,
-                        signal,
-                        params
-                    );
-                }
-            );
+        this._signalId = this._proxy.connect(
+            'g-signal',
+            (_proxy, sender, signal, params) => {
+                this._onSignal(
+                    sender,
+                    signal,
+                    params
+                );
+            }
+        );
 
-        this._ownerId =
-            this._proxy.connect(
-                'notify::g-name-owner',
-                () => {
-                    if (!this._proxy.g_name_owner)
-                        this.destroy();
-                }
-            );
+        this._ownerId = this._proxy.connect(
+            'notify::g-name-owner',
+            () => {
+                if (!this._proxy?.g_name_owner)
+                    this.destroy();
+            }
+        );
 
         this._loadCachedProperties();
     }
@@ -87,7 +88,10 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     }
 
 
-    _onPropertiesChanged(changed, invalidated) {
+    _onPropertiesChanged(
+        changed,
+        invalidated
+    ) {
         const values = changed.unpack();
 
         for (const [name, value] of Object.entries(values))
@@ -105,7 +109,8 @@ export class StatusNotifierItem extends Signals.EventEmitter {
             'IconName' in values ||
             'IconPixmap' in values ||
             'AttentionIconName' in values ||
-            'AttentionIconPixmap' in values
+            'AttentionIconPixmap' in values ||
+            'IconThemePath' in values
         ) {
             this.emit('icon-changed');
         }
@@ -115,20 +120,22 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     }
 
 
-    _onSignal(_sender, signal, _params) {
+    _onSignal(
+        _sender,
+        signal,
+        _params
+    ) {
         /*
-         * Unfortunately the SNI protocol defines a collection of
-         * NewFoo signals instead of requiring PropertiesChanged.
-         *
-         * Refresh the corresponding property ourselves.
+         * SNI implementations frequently emit NewFoo instead of
+         * org.freedesktop.DBus.Properties.PropertiesChanged.
          */
         switch (signal) {
         case 'NewIcon':
             this._refreshMany([
                 'IconName',
                 'IconPixmap',
+                'IconThemePath',
             ]);
-
             this.emit('icon-changed');
             break;
 
@@ -136,8 +143,13 @@ export class StatusNotifierItem extends Signals.EventEmitter {
             this._refreshMany([
                 'AttentionIconName',
                 'AttentionIconPixmap',
+                'IconThemePath',
             ]);
+            this.emit('icon-changed');
+            break;
 
+        case 'NewIconThemePath':
+            this._refreshProperty('IconThemePath');
             this.emit('icon-changed');
             break;
 
@@ -180,45 +192,34 @@ export class StatusNotifierItem extends Signals.EventEmitter {
             return;
 
         try {
-            const result =
-                Gio.DBus.session.call_sync(
-                    this.busName,
-                    this.objectPath,
-                    'org.freedesktop.DBus.Properties',
-                    'Get',
-                    new GLib.Variant(
-                        '(ss)',
-                        [
-                            STATUS_NOTIFIER_ITEM_IFACE,
-                            name,
-                        ]
-                    ),
-                    new GLib.VariantType('(v)'),
-                    Gio.DBusCallFlags.NONE,
-                    1000,
-                    null
-                );
-
-            const [value] =
-                result.deep_unpack();
-
-            this._properties.set(
-                name,
-                value
+            const result = Gio.DBus.session.call_sync(
+                this.busName,
+                this.objectPath,
+                'org.freedesktop.DBus.Properties',
+                'Get',
+                new GLib.Variant(
+                    '(ss)',
+                    [STATUS_NOTIFIER_ITEM_IFACE, name]
+                ),
+                new GLib.VariantType('(v)'),
+                Gio.DBusCallFlags.NONE,
+                1000,
+                null
             );
-        } catch (_e) {
-            /*
-             * Lots of implementations advertise optional properties
-             * inconsistently. Missing properties are harmless.
-             */
+
+            const [value] = result.deep_unpack();
+            this._properties.set(name, value);
+        } catch {
+            /* Optional property not provided by this implementation. */
         }
     }
 
 
-    _get(name, fallback = null) {
-        const value =
-            this._properties.get(name);
-
+    _get(
+        name,
+        fallback = null
+    ) {
+        const value = this._properties.get(name);
         if (!value)
             return fallback;
 
@@ -230,106 +231,81 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     }
 
 
+    _getVariant(name) {
+        return this._properties.get(name) ?? null;
+    }
+
+
     get uniqueId() {
         return `${this.busName}${this.objectPath}`;
     }
 
 
     get id() {
-        return this._get(
-            'Id',
-            this.service
-        );
+        return this._get('Id', this.service);
     }
 
 
     get title() {
-        return this._get(
-            'Title',
-            this.id
-        );
+        return this._get('Title', this.id);
     }
 
 
     get label() {
-        return this._get(
-            'XAyatanaLabel',
-            null
-        );
+        return this._get('XAyatanaLabel', null);
     }
 
 
     get status() {
-        return this._get(
-            'Status',
-            SNIStatus.ACTIVE
-        );
+        return this._get('Status', SNIStatus.ACTIVE);
     }
 
 
     get category() {
-        return this._get(
-            'Category',
-            'ApplicationStatus'
-        );
+        return this._get('Category', 'ApplicationStatus');
     }
 
 
     get iconName() {
-        return this._get(
-            'IconName',
-            null
-        );
+        return this._get('IconName', null);
     }
 
 
     get attentionIconName() {
-        return this._get(
-            'AttentionIconName',
-            null
-        );
+        return this._get('AttentionIconName', null);
+    }
+
+
+    get iconThemePath() {
+        return this._get('IconThemePath', null);
     }
 
 
     get iconPixmap() {
-        return this._get(
-            'IconPixmap',
-            []
-        );
+        return this._getVariant('IconPixmap');
     }
 
 
     get attentionIconPixmap() {
-        return this._get(
-            'AttentionIconPixmap',
-            []
-        );
+        return this._getVariant('AttentionIconPixmap');
     }
 
 
     get menuPath() {
-        return this._get(
-            'Menu',
-            null
-        );
+        const path = this._get('Menu', null);
+        return path === '/NO_DBUSMENU' ? null : path;
     }
 
 
     get itemIsMenu() {
-        return this._get(
-            'ItemIsMenu',
-            false
-        );
+        return this._get('ItemIsMenu', false);
     }
 
 
     activate(x = 0, y = 0) {
         return this._call(
             'Activate',
-            new GLib.Variant(
-                '(ii)',
-                [x, y]
-            )
+            new GLib.Variant('(ii)', [x, y])
         );
     }
 
@@ -337,10 +313,7 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     secondaryActivate(x = 0, y = 0) {
         return this._call(
             'SecondaryActivate',
-            new GLib.Variant(
-                '(ii)',
-                [x, y]
-            )
+            new GLib.Variant('(ii)', [x, y])
         );
     }
 
@@ -348,10 +321,7 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     contextMenu(x = 0, y = 0) {
         return this._call(
             'ContextMenu',
-            new GLib.Variant(
-                '(ii)',
-                [x, y]
-            )
+            new GLib.Variant('(ii)', [x, y])
         );
     }
 
@@ -361,10 +331,7 @@ export class StatusNotifierItem extends Signals.EventEmitter {
             'Scroll',
             new GLib.Variant(
                 '(is)',
-                [
-                    delta,
-                    orientation,
-                ]
+                [delta, orientation]
             )
         );
     }
@@ -403,32 +370,23 @@ export class StatusNotifierItem extends Signals.EventEmitter {
             return;
 
         this._destroyed = true;
-
         this.emit('destroy');
 
         if (this._proxy) {
             if (this._propertiesChangedId)
-                this._proxy.disconnect(
-                    this._propertiesChangedId
-                );
+                this._proxy.disconnect(this._propertiesChangedId);
 
             if (this._signalId)
-                this._proxy.disconnect(
-                    this._signalId
-                );
+                this._proxy.disconnect(this._signalId);
 
             if (this._ownerId)
-                this._proxy.disconnect(
-                    this._ownerId
-                );
+                this._proxy.disconnect(this._ownerId);
         }
 
+        this._propertiesChangedId = 0;
+        this._signalId = 0;
+        this._ownerId = 0;
         this._proxy = null;
-
         this._properties.clear();
-
-        this.emit('destroyed');
-
-        super.destroy();
     }
 }

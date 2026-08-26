@@ -506,7 +506,5 @@ extends Signals.EventEmitter {
         }
 
         this._connection = null;
-
-        super.destroy();
     }
 }

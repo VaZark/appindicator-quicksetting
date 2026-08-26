@@ -9,6 +9,11 @@ import {
     DBUS_MENU_IFACE,
 } from './interfaces.js';
 
+import {
+    normalizeIconName,
+    setDbusMenuIconData,
+} from './iconUtils.js';
+
 
 export class DBusMenuClient {
     constructor(
@@ -31,19 +36,27 @@ export class DBusMenuClient {
             0;
 
         this._proxy =
-            Gio.DBusProxy.new_for_bus_sync(
-                Gio.BusType.SESSION,
-                Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES,
-                null,
-                busName,
-                objectPath,
-                DBUS_MENU_IFACE,
-                null
-            );
+            Gio.DBusProxy
+                .new_for_bus_sync(
+                    Gio.BusType.SESSION,
+
+                    Gio.DBusProxyFlags
+                        .DO_NOT_LOAD_PROPERTIES,
+
+                    null,
+
+                    busName,
+                    objectPath,
+
+                    DBUS_MENU_IFACE,
+
+                    null
+                );
 
         this._signalId =
             this._proxy.connect(
                 'g-signal',
+
                 (
                     _proxy,
                     _sender,
@@ -70,16 +83,26 @@ export class DBusMenuClient {
         this._menuSignal =
             menu.connect(
                 'open-state-changed',
-                (_menu, open) => {
+
+                (
+                    _menu,
+                    open
+                ) => {
                     if (!open)
                         return;
 
-                    this.aboutToShow(0);
+                    this.aboutToShow(
+                        0
+                    );
+
                     this.reload();
                 }
             );
 
-        this.aboutToShow(0);
+        this.aboutToShow(
+            0
+        );
+
         this.reload();
     }
 
@@ -97,7 +120,9 @@ export class DBusMenuClient {
                 await Gio.DBus.session.call(
                     this._busName,
                     this._objectPath,
+
                     DBUS_MENU_IFACE,
+
                     'GetLayout',
 
                     new GLib.Variant(
@@ -110,8 +135,11 @@ export class DBusMenuClient {
                     ),
 
                     null,
+
                     Gio.DBusCallFlags.NONE,
+
                     3000,
+
                     null
                 );
 
@@ -130,7 +158,9 @@ export class DBusMenuClient {
                     unpacked[1]
                 );
 
-            this._render(layout);
+            this._render(
+                layout
+            );
         } catch (e) {
             if (
                 e.matches?.(
@@ -150,8 +180,12 @@ export class DBusMenuClient {
 
 
     _render(root) {
-        if (!root || !this._menu)
+        if (
+            !root ||
+            !this._menu
+        ) {
             return;
+        }
 
         this._menu.removeAll();
 
@@ -161,15 +195,25 @@ export class DBusMenuClient {
             children,
         ] = root;
 
-        for (const child of children ?? []) {
+        for (
+            const child
+            of children ?? []
+        ) {
             const node =
-                normalizeVariant(child);
+                normalizeVariant(
+                    child
+                );
 
             const item =
-                this._createMenuItem(node);
+                this._createMenuItem(
+                    node
+                );
 
-            if (item)
-                this._menu.addMenuItem(item);
+            if (item) {
+                this._menu.addMenuItem(
+                    item
+                );
+            }
         }
     }
 
@@ -189,39 +233,52 @@ export class DBusMenuClient {
                 properties
             );
 
-        if (props.visible === false)
+        if (
+            props.visible === false
+        ) {
             return null;
+        }
 
-        if (props.type === 'separator') {
+        if (
+            props.type ===
+            'separator'
+        ) {
             return new PopupMenu
                 .PopupSeparatorMenuItem();
         }
 
         const childNodes =
             (children ?? [])
-                .map(normalizeVariant);
+                .map(
+                    normalizeVariant
+                );
 
         const hasSubmenu =
-            props['children-display'] ===
-                'submenu' ||
+            props[
+                'children-display'
+            ] === 'submenu' ||
             childNodes.length > 0;
 
         let item;
 
         if (hasSubmenu) {
             item =
-                new PopupMenu.PopupSubMenuMenuItem(
-                    cleanLabel(
-                        props.label ?? ''
-                    )
-                );
+                new PopupMenu
+                    .PopupSubMenuMenuItem(
+                        cleanLabel(
+                            props.label ??
+                            ''
+                        )
+                    );
         } else {
             item =
-                new PopupMenu.PopupMenuItem(
-                    cleanLabel(
-                        props.label ?? ''
-                    )
-                );
+                new PopupMenu
+                    .PopupMenuItem(
+                        cleanLabel(
+                            props.label ??
+                            ''
+                        )
+                    );
         }
 
         item.setSensitive(
@@ -229,56 +286,59 @@ export class DBusMenuClient {
         );
 
         if (
-            props['toggle-type'] ===
-                'checkmark' &&
-            props['toggle-state'] > 0
+            props[
+                'toggle-type'
+            ] === 'checkmark' &&
+            props[
+                'toggle-state'
+            ] > 0
         ) {
             item.setOrnament(
                 PopupMenu.Ornament.CHECK
             );
         } else if (
-            props['toggle-type'] ===
-                'radio' &&
-            props['toggle-state'] > 0
+            props[
+                'toggle-type'
+            ] === 'radio' &&
+            props[
+                'toggle-state'
+            ] > 0
         ) {
             item.setOrnament(
                 PopupMenu.Ornament.DOT
             );
         }
 
-        if (
-            props['icon-name'] &&
-            item instanceof
-                PopupMenu.PopupMenuItem
-        ) {
-            const icon =
-                new St.Icon({
-                    iconName:
-                        props['icon-name'],
-
-                    styleClass:
-                        'popup-menu-icon',
-                });
-
-            item.add_child(icon);
-        }
+        this._applyIcon(
+            item,
+            props
+        );
 
         if (hasSubmenu) {
-            for (const child of childNodes) {
+            for (
+                const child
+                of childNodes
+            ) {
                 const childItem =
                     this._createMenuItem(
                         child
                     );
 
-                if (childItem)
-                    item.menu.addMenuItem(
-                        childItem
-                    );
+                if (childItem) {
+                    item.menu
+                        .addMenuItem(
+                            childItem
+                        );
+                }
             }
 
             item.menu.connect(
                 'open-state-changed',
-                (_menu, open) => {
+
+                (
+                    _menu,
+                    open
+                ) => {
                     if (!open)
                         return;
 
@@ -287,29 +347,38 @@ export class DBusMenuClient {
                         'opened'
                     );
 
-                    this.aboutToShow(id);
+                    this.aboutToShow(
+                        id
+                    );
                 }
             );
         }
 
         if (
             item instanceof
-                PopupMenu.PopupMenuItem
+            PopupMenu.PopupMenuItem
         ) {
             item.connect(
                 'activate',
-                (_item, event) => {
+
+                (
+                    _item,
+                    event
+                ) => {
                     const timestamp =
-                        event?.get_time?.() ??
-                        0;
+                        event
+                            ?.get_time?.()
+                        ?? 0;
 
                     this.event(
                         id,
                         'clicked',
+
                         new GLib.Variant(
                             'i',
                             0
                         ),
+
                         timestamp
                     );
                 }
@@ -317,6 +386,77 @@ export class DBusMenuClient {
         }
 
         return item;
+    }
+
+
+    _applyIcon(
+        item,
+        props
+    ) {
+        const iconName =
+            props[
+                'icon-name'
+            ];
+
+        const iconData =
+            props[
+                'icon-data'
+            ];
+
+        if (
+            !iconName &&
+            !iconData
+        ) {
+            return;
+        }
+
+        const icon =
+            new St.Icon({
+                iconSize:
+                    20,
+
+                styleClass:
+                    'popup-menu-icon',
+            });
+
+        /*
+         * Keep the row label expandable.
+         */
+        if (item.label) {
+            item.label.x_expand =
+                true;
+        }
+
+        /*
+         * Put the icon near the start of the row
+         * rather than appending it at the end.
+         */
+        item.insert_child_at_index(
+            icon,
+            1
+        );
+
+        if (iconName) {
+            icon.iconName =
+                normalizeIconName(
+                    iconName
+                );
+
+            return;
+        }
+
+        setDbusMenuIconData(
+            icon,
+            iconData,
+            20
+        ).catch(
+            e => {
+                logError(
+                    e,
+                    'Unable to render DBusMenu icon'
+                );
+            }
+        );
     }
 
 
@@ -338,7 +478,9 @@ export class DBusMenuClient {
         Gio.DBus.session.call(
             this._busName,
             this._objectPath,
+
             DBUS_MENU_IFACE,
+
             'Event',
 
             new GLib.Variant(
@@ -352,13 +494,22 @@ export class DBusMenuClient {
             ),
 
             null,
+
             Gio.DBusCallFlags.NONE,
+
             2000,
+
             null,
-            (_connection, result) => {
+
+            (
+                _connection,
+                result
+            ) => {
                 try {
                     Gio.DBus.session
-                        .call_finish(result);
+                        .call_finish(
+                            result
+                        );
                 } catch (e) {
                     logError(
                         e,
@@ -379,7 +530,9 @@ export class DBusMenuClient {
                 await Gio.DBus.session.call(
                     this._busName,
                     this._objectPath,
+
                     DBUS_MENU_IFACE,
+
                     'AboutToShow',
 
                     new GLib.Variant(
@@ -388,15 +541,14 @@ export class DBusMenuClient {
                     ),
 
                     null,
+
                     Gio.DBusCallFlags.NONE,
+
                     1000,
+
                     null
                 );
 
-            /*
-             * Some implementations return (), despite the specification
-             * requiring (b). That's why no fixed return type is used.
-             */
             if (!result)
                 return;
 
@@ -410,13 +562,14 @@ export class DBusMenuClient {
                 const [changed] =
                     result.deep_unpack();
 
-                if (changed)
+                if (changed) {
                     this.reload();
+                }
             }
         } catch (e) {
             /*
-             * Many indicators don't implement AboutToShow correctly.
-             * Treat that as optional compatibility behavior.
+             * Some implementations omit or break
+             * AboutToShow.
              */
             if (
                 e.matches?.(
@@ -443,7 +596,8 @@ export class DBusMenuClient {
         if (this._destroyed)
             return;
 
-        this._destroyed = true;
+        this._destroyed =
+            true;
 
         if (
             this._menu &&
@@ -454,7 +608,7 @@ export class DBusMenuClient {
                     this._menuSignal
                 );
             } catch {
-                // menu may already be destroyed
+                // already destroyed
             }
         }
 
@@ -462,10 +616,20 @@ export class DBusMenuClient {
             this._proxy &&
             this._signalId
         ) {
-            this._proxy.disconnect(
-                this._signalId
-            );
+            try {
+                this._proxy.disconnect(
+                    this._signalId
+                );
+            } catch {
+                // already destroyed
+            }
         }
+
+        this._menuSignal =
+            0;
+
+        this._signalId =
+            0;
 
         this._proxy =
             null;
@@ -479,13 +643,15 @@ export class DBusMenuClient {
 function normalizeVariant(value) {
     while (
         value instanceof
-            GLib.Variant
+        GLib.Variant
     ) {
         value =
             value.deep_unpack();
     }
 
-    if (Array.isArray(value)) {
+    if (
+        Array.isArray(value)
+    ) {
         return value.map(
             normalizeVariant
         );
@@ -495,15 +661,21 @@ function normalizeVariant(value) {
 }
 
 
-function normalizeProperties(values) {
+function normalizeProperties(
+    values
+) {
     const result = {};
 
     for (
         const [name, value]
-        of Object.entries(values ?? {})
+        of Object.entries(
+            values ?? {}
+        )
     ) {
         result[name] =
-            normalizeVariant(value);
+            normalizeVariant(
+                value
+            );
     }
 
     return result;
@@ -511,9 +683,6 @@ function normalizeProperties(values) {
 
 
 function cleanLabel(label) {
-    /*
-     * DBusMenu uses underscore mnemonic markers.
-     */
     return label.replace(
         /_([^_])/g,
         '$1'
