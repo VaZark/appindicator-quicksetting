@@ -24,7 +24,10 @@ extends QuickToggle {
                 'preferences-desktop-multitasking-symbolic',
         });
 
-        this.title =
+      this.menu.actor.style =
+            'max-height: 600px;';
+
+      this.title =
             _('Running Apps');
 
         this.add_style_class_name(
