@@ -1,0 +1,3 @@
+[submodule "upstream/appindicator"]
+	path = upstream/appindicator
+	url = https://github.com/ubuntu/gnome-shell-extension-appindicator.git
