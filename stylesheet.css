@@ -1,1 +1,8 @@
 /* Add your custom extension styling here */
+
+.running-app-item {
+}
+
+.running-app-item .popup-menu-icon {
+    margin-right: 8px;
+}
