@@ -11,7 +11,7 @@ export const RunningAppsWidget = GObject.registerClass(
     _init() {
       super._init({
         hasMenu: true,
-        iconName: "preferences-desktop-multitasking-symbolic",
+        iconName: "go-next-symbolic",
       });
 
       this.menu.actor.style = "max-height: 600px;";
@@ -22,7 +22,7 @@ export const RunningAppsWidget = GObject.registerClass(
       this.add_style_class_name("background-apps-quick-toggle");
       this._box.set_child_above_sibling(this._icon, null);
 
-      this.menu.setHeader("preferences-desktop-multitasking-symbolic", _("Running Apps"));
+      this.menu.setHeader("go-next-symbolic", _("Running Apps"));
 
       this._items = new Map();
 
