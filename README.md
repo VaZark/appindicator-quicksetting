@@ -6,7 +6,7 @@ This is still pretty experimental and mostly something I built for myself.
 
 _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is heavily used._
 
-<img width="389" height="530" alt="image" src="https://github.com/user-attachments/assets/e2f29c03-734b-4bbe-ba41-fe63dc93e947" />
+<img width="383" height="322" alt="image" src="https://github.com/user-attachments/assets/1cc9d494-90aa-4d31-a66a-ae98c1121228" />
 
 ## Goals
 
