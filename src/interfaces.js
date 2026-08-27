@@ -1,18 +1,12 @@
-export const STATUS_NOTIFIER_WATCHER_IFACE =
-    'org.kde.StatusNotifierWatcher';
+export const STATUS_NOTIFIER_WATCHER_IFACE = "org.kde.StatusNotifierWatcher";
 
-export const STATUS_NOTIFIER_ITEM_IFACE =
-    'org.kde.StatusNotifierItem';
+export const STATUS_NOTIFIER_ITEM_IFACE = "org.kde.StatusNotifierItem";
 
-export const DBUS_MENU_IFACE =
-    'com.canonical.dbusmenu';
+export const DBUS_MENU_IFACE = "com.canonical.dbusmenu";
 
-export const WATCHER_PATH =
-    '/StatusNotifierWatcher';
+export const WATCHER_PATH = "/StatusNotifierWatcher";
 
-export const DEFAULT_ITEM_PATH =
-    '/StatusNotifierItem';
-
+export const DEFAULT_ITEM_PATH = "/StatusNotifierItem";
 
 export const STATUS_NOTIFIER_WATCHER_XML = `
 <node>
@@ -53,7 +47,6 @@ export const STATUS_NOTIFIER_WATCHER_XML = `
     </interface>
 </node>
 `;
-
 
 export const DBUS_MENU_XML = `
 <node>

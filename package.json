@@ -1,6 +1,35 @@
 {
+  "name": "appindicator-quicksetting",
+  "version": "1.0.0",
+  "description": "A small GNOME Shell extension that shows running AppIndicator / StatusNotifier apps inside Quick Settings. Inspired by Background Apps.",
+  "keywords": [],
+  "homepage": "https://github.com/VaZark/appindicator-quicksetting#readme",
+  "bugs": {
+    "url": "https://github.com/VaZark/appindicator-quicksetting/issues"
+  },
+  "license": "ISC",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VaZark/appindicator-quicksetting.git"
+  },
+  "directories": {
+    "test": "test"
+  },
   "type": "module",
+  "main": "extension.js",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "prepare": "husky",
+    "pre-commit": "lint-staged"
+  },
+  "devDependencies": {
+    "lint-staged": "^17.4.1",
+    "oxfmt": "^0.65.0"
+  },
+  "lint-staged": {
+    "*": "oxfmt --no-error-on-unmatched-pattern"
   }
 }

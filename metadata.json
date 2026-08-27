@@ -2,7 +2,5 @@
   "name": "AppIndicator QuickSetting",
   "description": "Leverage the AppIndicator/KStatusNotifierItem in the QuickSettings dropdown",
   "uuid": "appindicator-quicksetting",
-  "shell-version": [
-    "50"
-  ]
+  "shell-version": ["50"]
 }

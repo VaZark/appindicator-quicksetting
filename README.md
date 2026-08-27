@@ -13,7 +13,7 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 - [x] Tries to behave like the normal AppIndicator tray, just inside Quick Settings
   - [x] App Icon and menu
   - [x] Submenu
-  - [x] Scrollable on overflow (hardcoded to 600px atm) 
+  - [x] Scrollable on overflow (hardcoded to 600px atm)
 - [ ] Add per-application inclusion/exclusion settings
 
 > [!NOTE]
