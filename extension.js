@@ -10,21 +10,23 @@ import {
 } from './src/statusNotifierWatcher.js';
 
 import {
-    RunningAppsIndicator,
-} from './src/runningAppsIndicator.js';
+    RunningAppsWidget,
+} from './src/runningAppsWidget.js';
 
 
 export default class
 AppIndicatorQuickSettingsExtension
 extends Extension {
     enable() {
-        this._indicator =
-            new RunningAppsIndicator();
+        this._widget =
+            new RunningAppsWidget();
 
         Main.panel.statusArea
             .quickSettings
-            .addExternalIndicator(
-                this._indicator
+            .menu
+            ._addItems(
+                [this._widget],
+                2
             );
 
         this._watcher =
@@ -34,7 +36,7 @@ extends Extension {
             this._watcher.connect(
                 'item-added',
                 (_watcher, item) => {
-                    this._indicator
+                    this._widget
                         .addIndicator(
                             item
                         );
@@ -45,7 +47,7 @@ extends Extension {
             this._watcher.connect(
                 'item-removed',
                 (_watcher, item) => {
-                    this._indicator
+                    this._widget
                         .removeIndicator(
                             item
                         );
@@ -78,18 +80,10 @@ extends Extension {
         this._removedId =
             0;
 
-        if (this._indicator) {
-            for (
-                const item
-                of this._indicator
-                    .quickSettingsItems
-            ) {
-                item.destroy();
-            }
+        if (this._widget) {
+            this._widget.destroy();
 
-            this._indicator.destroy();
-
-            this._indicator =
+            this._widget =
                 null;
         }
     }

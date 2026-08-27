@@ -1,7 +1,7 @@
 import GObject from 'gi://GObject';
 
 import {
-    QuickToggle,
+    QuickMenuToggle,
 } from 'resource:///org/gnome/shell/ui/quickSettings.js';
 
 import {
@@ -13,15 +13,15 @@ import {
 } from './runningAppItem.js';
 
 
-export const RunningAppsToggle =
+export const RunningAppsWidget =
 GObject.registerClass(
-class RunningAppsToggle
-extends QuickToggle {
+class RunningAppsWidget
+extends QuickMenuToggle {
     _init() {
         super._init({
-            hasMenu: true,
             iconName:
                 'preferences-desktop-multitasking-symbolic',
+            toggleMode: false,
         });
 
       this.menu.actor.style =
@@ -72,6 +72,11 @@ extends QuickToggle {
             () => {
                 this.menu.open();
             }
+        );
+
+        this.connect(
+            'destroy',
+            () => this._onDestroy()
         );
     }
 
@@ -257,11 +262,9 @@ extends QuickToggle {
     }
 
 
-    destroy() {
+    _onDestroy() {
         /*
          * Restore GNOME's original method.
-         *
-         * No super.destroy() here.
          */
         if (
             this._originalSetOpenedSubMenu
