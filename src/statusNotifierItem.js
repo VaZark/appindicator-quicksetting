@@ -8,6 +8,11 @@ import {
     STATUS_NOTIFIER_ITEM_IFACE,
 } from './interfaces.js';
 
+import {
+    collectChangedPropertyNames,
+    ICON_PROPERTIES,
+} from './propertyChanges.js';
+
 
 export const SNIStatus = Object.freeze({
     PASSIVE: 'Passive',
@@ -100,22 +105,26 @@ export class StatusNotifierItem extends Signals.EventEmitter {
         for (const name of invalidated)
             this._properties.delete(name);
 
+        const changedNames =
+            collectChangedPropertyNames(
+                values,
+                invalidated
+            );
+
         this.emit('changed');
 
-        if ('Status' in values)
+        if (changedNames.has('Status'))
             this.emit('status-changed');
 
         if (
-            'IconName' in values ||
-            'IconPixmap' in values ||
-            'AttentionIconName' in values ||
-            'AttentionIconPixmap' in values ||
-            'IconThemePath' in values
+            ICON_PROPERTIES.some(
+                name => changedNames.has(name)
+            )
         ) {
             this.emit('icon-changed');
         }
 
-        if ('Menu' in values)
+        if (changedNames.has('Menu'))
             this.emit('menu-changed');
     }
 
