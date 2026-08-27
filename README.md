@@ -1,6 +1,6 @@
-# Running Apps Quick Toggle
+# Running Apps Quick Settings Widget
 
-A small GNOME Shell extension that shows running AppIndicator / StatusNotifier apps inside Quick Settings. Inspired by Background Apps.
+A small GNOME Shell extension that shows running AppIndicator / StatusNotifier apps in a full-width Quick Settings widget styled like Background Apps.
 
 This is still pretty experimental and mostly something I built for myself.
 
