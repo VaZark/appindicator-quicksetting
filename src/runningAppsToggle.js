@@ -73,6 +73,12 @@ extends QuickToggle {
                 this.menu.open();
             }
         );
+
+        this.connect(
+                   'destroy',
+                   () => this._onDestroy()
+               );
+
     }
 
 
@@ -257,7 +263,7 @@ extends QuickToggle {
     }
 
 
-    destroy() {
+    _onDestroy() {
         /*
          * Restore GNOME's original method.
          *
