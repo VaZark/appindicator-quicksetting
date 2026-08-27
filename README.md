@@ -4,7 +4,7 @@ A small GNOME Shell extension that shows running AppIndicator / StatusNotifier a
 
 This is still pretty experimental and mostly something I built for myself.
 
-_Disclaimer: I have no with experience gtk / gnome-shell code.. so AI was/is heavily used_
+_Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is heavily used._
 
 <img width="389" height="530" alt="image" src="https://github.com/user-attachments/assets/e2f29c03-734b-4bbe-ba41-fe63dc93e947" />
 
@@ -14,12 +14,20 @@ _Disclaimer: I have no with experience gtk / gnome-shell code.. so AI was/is hea
   - [x] App Icon and menu
   - [x] Submenu
   - [x] Scrollable on overflow (hardcoded to 600px atm) 
-- [ ] Add Exceptions to show it on systray 
+- [ ] Add per-application inclusion/exclusion settings
+
+> [!NOTE]
+> This extension provides the `org.kde.StatusNotifierWatcher` service itself.
+> It therefore cannot run alongside another AppIndicator/KStatusNotifierItem
+> extension that owns the same service. Any future filtering will control which
+> applications appear in this extension; it will not route excluded applications
+> to a separate system tray extension.
+
 ## Credits
 
 A lot of the implementation is based on the AppIndicator/KStatusNotifier extensions.
 
 ### Alternative methods I tried and abandoned
 
-- Git submoduling AppIndicator/KStatusNotifier and adding an adapter but the code was way too coupled and I was pratically initialising their extension.
-- Copying Background Apps Implementation but that were gnome internals that have no guarantee and extension risk breakage with every update even without entangling myself in internal APIs.
+- Using AppIndicator/KStatusNotifier as a Git submodule and adding an adapter, but the code was too tightly coupled and I was practically initializing the other extension.
+- Copying the Background Apps implementation, but it uses GNOME internals that provide no stability guarantees and risk breaking the extension with every update.

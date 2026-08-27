@@ -5,6 +5,13 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
 
+import {
+    normalizeIconName,
+} from './iconNames.js';
+
+
+export {normalizeIconName} from './iconNames.js';
+
 
 Gio._promisify(
     GdkPixbuf.Pixbuf,
@@ -255,25 +262,6 @@ export async function setDbusMenuIconData(
         );
         return false;
     }
-}
-
-
-export function normalizeIconName(name) {
-    if (!name)
-        return null;
-
-    /* Absolute paths must never be treated as theme icon names. */
-    if (name.startsWith('/'))
-        return name;
-
-    const lower = name.toLowerCase();
-
-    for (const extension of ['.svg', '.png']) {
-        if (lower.endsWith(extension))
-            return name.slice(0, -extension.length);
-    }
-
-    return name;
 }
 
 
