@@ -75,9 +75,10 @@ extends QuickToggle {
         );
 
         this.connect(
-            'destroy',
-            () => this._onDestroy()
-        );
+                   'destroy',
+                   () => this._onDestroy()
+               );
+
     }
 
 
