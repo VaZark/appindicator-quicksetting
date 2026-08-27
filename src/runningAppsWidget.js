@@ -6,8 +6,8 @@ import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.j
 
 import { RunningAppItem } from "./runningAppItem.js";
 
-export const RunningAppsToggle = GObject.registerClass(
-  class RunningAppsToggle extends QuickToggle {
+export const RunningAppsWidget = GObject.registerClass(
+  class RunningAppsWidget extends QuickToggle {
     _init() {
       super._init({
         hasMenu: true,
@@ -18,7 +18,9 @@ export const RunningAppsToggle = GObject.registerClass(
 
       this.title = _("Running Apps");
 
-      this.add_style_class_name("running-apps-quick-toggle");
+      // Use the same presentation as GNOME's Background Apps control.
+      this.add_style_class_name("background-apps-quick-toggle");
+      this._box.set_child_above_sibling(this._icon, null);
 
       this.menu.setHeader("preferences-desktop-multitasking-symbolic", _("Running Apps"));
 
@@ -145,10 +147,6 @@ export const RunningAppsToggle = GObject.registerClass(
       }
 
       return false;
-    }
-
-    get itemCount() {
-      return this._items.size;
     }
 
     addIndicator(indicator) {

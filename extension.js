@@ -4,22 +4,25 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 
 import { StatusNotifierWatcher } from "./src/statusNotifierWatcher.js";
 
-import { RunningAppsIndicator } from "./src/runningAppsIndicator.js";
+import { RunningAppsWidget } from "./src/runningAppsWidget.js";
 
 export default class AppIndicatorQuickSettingsExtension extends Extension {
   enable() {
-    this._indicator = new RunningAppsIndicator();
+    this._widget = new RunningAppsWidget();
 
-    Main.panel.statusArea.quickSettings.addExternalIndicator(this._indicator);
+    // This is a full-width Quick Settings widget, like Background Apps, rather
+    // than a system toggle. Adding it to the menu directly also avoids
+    // registering a (hidden) panel indicator solely to host the widget.
+    Main.panel.statusArea.quickSettings.menu.addItem(this._widget, 2);
 
     this._watcher = new StatusNotifierWatcher();
 
     this._addedId = this._watcher.connect("item-added", (_watcher, item) => {
-      this._indicator.addIndicator(item);
+      this._widget.addIndicator(item);
     });
 
     this._removedId = this._watcher.connect("item-removed", (_watcher, item) => {
-      this._indicator.removeIndicator(item);
+      this._widget.removeIndicator(item);
     });
   }
 
@@ -38,14 +41,9 @@ export default class AppIndicatorQuickSettingsExtension extends Extension {
 
     this._removedId = 0;
 
-    if (this._indicator) {
-      for (const item of this._indicator.quickSettingsItems) {
-        item.destroy();
-      }
-
-      this._indicator.destroy();
-
-      this._indicator = null;
+    if (this._widget) {
+      this._widget.destroy();
+      this._widget = null;
     }
   }
 }
