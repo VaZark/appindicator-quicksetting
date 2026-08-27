@@ -22,7 +22,7 @@ export const RunningAppsWidget = GObject.registerClass(
       this.add_style_class_name("background-apps-quick-toggle");
       this._box.set_child_above_sibling(this._icon, null);
 
-      this.menu.setHeader("go-next-symbolic", _("Running Apps"));
+      this.menu.setHeader("preferences-desktop-multitasking-symbolic", _("Running Apps"));
 
       this._items = new Map();
 
