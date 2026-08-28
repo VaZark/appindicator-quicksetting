@@ -13,6 +13,14 @@ export class StatusNotifierWatcher {
     this._destroyed = false;
     this._watchDog = { nameAcquired: false, nameOnBus: true };
 
+    const upstreamPath = extension.dir
+      .get_child("vendor")
+      .get_child("gnome-shell-extension-appindicator");
+    const upstreamExtension = {
+      dir: upstreamPath,
+      path: upstreamPath.get_path(),
+    };
+
     const owner = this;
     this._upstream = new (class extends UpstreamWatcher.StatusNotifierWatcher {
       async _registerItem(service, busName, objectPath) {
@@ -30,7 +38,7 @@ export class StatusNotifierWatcher {
         const panelIcon = Main.panel.statusArea[`appindicator-${item.uniqueId}`];
         panelIcon?.destroy();
       }
-    })(extension, this._watchDog);
+    })(upstreamExtension, this._watchDog);
   }
 
   connect(signal, callback) {
