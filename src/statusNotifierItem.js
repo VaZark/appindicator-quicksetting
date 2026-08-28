@@ -1,5 +1,6 @@
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
+import Shell from "gi://Shell";
 
 import * as Signals from "resource:///org/gnome/shell/misc/signals.js";
 
@@ -23,6 +24,8 @@ export class StatusNotifierItem extends Signals.EventEmitter {
 
     this._destroyed = false;
     this._properties = new Map();
+    this._appName = null;
+    this._cancellable = new Gio.Cancellable();
 
     this._proxy = Gio.DBusProxy.new_for_bus_sync(
       Gio.BusType.SESSION,
@@ -50,6 +53,47 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     });
 
     this._loadCachedProperties();
+
+    this._appSystem = Shell.AppSystem.get_default();
+    this._appSystemSignals = [
+      this._appSystem.connect("installed-changed", () => this._updateAppName()),
+      this._appSystem.connect("app-state-changed", () => this._updateAppName()),
+    ];
+
+    this._updateAppName();
+  }
+
+  async _updateAppName() {
+    if (this._destroyed || this._appName || this._appNameLookupPending) return;
+
+    this._appNameLookupPending = true;
+
+    try {
+      const result = await dbusCall(
+        Gio.DBus.session,
+        "org.freedesktop.DBus",
+        "/",
+        "org.freedesktop.DBus",
+        "GetConnectionUnixProcessID",
+        new GLib.Variant("(s)", [this.busName]),
+        new GLib.VariantType("(u)"),
+        this._cancellable,
+      );
+      const [pid] = result.deepUnpack();
+      const appInfo = Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo;
+      const appName = appInfo?.get_display_name();
+
+      if (!this._destroyed && appName && appName !== this._appName) {
+        this._appName = appName;
+        this.emit("changed");
+      }
+    } catch (e) {
+      if (!e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
+        console.debug(`Unable to resolve the application name for ${this.busName}: ${e.message}`);
+      }
+    } finally {
+      this._appNameLookupPending = false;
+    }
   }
 
   _loadCachedProperties() {
@@ -184,6 +228,10 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     return this._get("Title", this.id);
   }
 
+  get appName() {
+    return this._appName;
+  }
+
   get label() {
     return this._get("XAyatanaLabel", null);
   }
@@ -268,7 +316,10 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     if (this._destroyed) return;
 
     this._destroyed = true;
+    this._cancellable.cancel();
     this.emit("destroy");
+
+    for (const id of this._appSystemSignals) this._appSystem.disconnect(id);
 
     if (this._proxy) {
       if (this._propertiesChangedId) this._proxy.disconnect(this._propertiesChangedId);
@@ -281,7 +332,33 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     this._propertiesChangedId = 0;
     this._signalId = 0;
     this._ownerId = 0;
+    this._appSystemSignals = [];
+    this._appSystem = null;
+    this._cancellable = null;
     this._proxy = null;
     this._properties.clear();
   }
+}
+
+function dbusCall(connection, busName, objectPath, interfaceName, method, params, replyType, cancellable) {
+  return new Promise((resolve, reject) => {
+    connection.call(
+      busName,
+      objectPath,
+      interfaceName,
+      method,
+      params,
+      replyType,
+      Gio.DBusCallFlags.NONE,
+      -1,
+      cancellable,
+      (source, result) => {
+        try {
+          resolve(source.call_finish(result));
+        } catch (e) {
+          reject(e);
+        }
+      },
+    );
+  });
 }
