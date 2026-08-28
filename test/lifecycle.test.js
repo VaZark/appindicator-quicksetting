@@ -4,10 +4,7 @@ import { createSignalManager, resetDisposable } from "../src/utils/lifecycle.js"
 
 test("signal manager disconnects tracked signals once", () => {
   const disconnected = [];
-  const source = {
-    connect: (_signal, _handler) => 42,
-    disconnect: (id) => disconnected.push(id),
-  };
+  const source = { connect: (_signal, _handler) => 42, disconnect: (id) => disconnected.push(id) };
   const signals = createSignalManager();
 
   signals.connect(source, "changed", () => {});
@@ -22,14 +19,8 @@ test("signal manager disconnects tracked signals once", () => {
 test("signal manager exposes snapshots and resets one signal group", () => {
   const disconnected = [];
   let nextId = 1;
-  const source = {
-    connect: () => nextId++,
-    disconnect: (id) => disconnected.push(id),
-  };
-  const otherSource = {
-    connect: () => nextId++,
-    disconnect: (id) => disconnected.push(id),
-  };
+  const source = { connect: () => nextId++, disconnect: (id) => disconnected.push(id) };
+  const otherSource = { connect: () => nextId++, disconnect: (id) => disconnected.push(id) };
   const signals = createSignalManager();
 
   signals.connect(source, "changed", () => {});

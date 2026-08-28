@@ -24,13 +24,7 @@ function createHarness() {
     addWidget: (toggle) => calls.push(["add-toggle", toggle]),
   });
 
-  return {
-    calls,
-    controller,
-    getProtocolMessages: () => protocolMessages,
-    protocol,
-    widget,
-  };
+  return { calls, controller, getProtocolMessages: () => protocolMessages, protocol, widget };
 }
 
 test("extension enable creates and adds the Quick Settings toggle", () => {

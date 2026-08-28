@@ -37,13 +37,9 @@ export class StatusNotifierItem extends Signals.EventEmitter {
       null,
     );
 
-    this._signals.connect(
-      this._proxy,
-      "g-properties-changed",
-      (_proxy, changed, invalidated) => {
-        this._onPropertiesChanged(changed, invalidated);
-      },
-    );
+    this._signals.connect(this._proxy, "g-properties-changed", (_proxy, changed, invalidated) => {
+      this._onPropertiesChanged(changed, invalidated);
+    });
 
     this._signals.connect(this._proxy, "g-signal", (_proxy, sender, signal, params) => {
       this._onSignal(sender, signal, params);

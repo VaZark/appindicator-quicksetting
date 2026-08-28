@@ -1,11 +1,11 @@
 import GObject from "gi://GObject";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
+import { DBusMenuClient } from "../dbusMenu.js";
 import { SNIStatus } from "../protocol/statusNotifierItem.js";
 import { getIndicatorName } from "../utils/appNames.js";
 import { setSniIcon } from "../utils/iconUtils.js";
 import { createSignalManager, resetDisposable } from "../utils/lifecycle.js";
-import { DBusMenuClient } from "../dbusMenu.js";
 
 export const RunningAppItem = GObject.registerClass(
   class RunningAppItem extends PopupMenu.PopupSubMenuMenuItem {

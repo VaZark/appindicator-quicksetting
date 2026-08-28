@@ -19,7 +19,7 @@
   "type": "module",
   "main": "extension.js",
   "scripts": {
-    "build": "mkdir -p dist && gnome-extensions pack --force --out-dir=dist --extra-source=src --extra-source=COPYING --extra-source=CREDITS .",
+    "build": "mkdir -p dist && gnome-extensions pack --force --out-dir=dist --extra-source=src --extra-source=LICENSE --extra-source=CREDITS .",
     "test": "node --test",
     "mock:indicator": "gjs -m test/mock-indicator.gjs",
     "fmt": "oxfmt",

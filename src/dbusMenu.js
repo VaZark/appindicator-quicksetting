@@ -27,28 +27,20 @@ export class DBusMenuClient {
       null,
     );
 
-    this._signals.connect(
-      this._proxy,
-      "g-signal",
-      (_proxy, _sender, signal, _params) => {
-        if (signal === "LayoutUpdated" || signal === "ItemsPropertiesUpdated") {
-          this.reload();
-        }
-      },
-    );
+    this._signals.connect(this._proxy, "g-signal", (_proxy, _sender, signal, _params) => {
+      if (signal === "LayoutUpdated" || signal === "ItemsPropertiesUpdated") {
+        this.reload();
+      }
+    });
   }
 
   attachToMenu(menu) {
     this._menu = menu;
-    this._signals.connect(
-      menu,
-      "open-state-changed",
-      (_menu, open) => {
-        if (!open) return;
+    this._signals.connect(menu, "open-state-changed", (_menu, open) => {
+      if (!open) return;
 
-        this._prepareAndReload(0);
-      },
-    );
+      this._prepareAndReload(0);
+    });
 
     this._prepareAndReload(0);
   }
@@ -154,28 +146,17 @@ export class DBusMenuClient {
 
       this._setSubmenuPreviewHeight(item.menu);
 
-      item.menu.connect(
-        "open-state-changed",
-        (_menu, open) => {
-          if (!open) return;
-          this._openSubmenu(id, item.menu);
-        },
-      );
+      item.menu.connect("open-state-changed", (_menu, open) => {
+        if (!open) return;
+        this._openSubmenu(id, item.menu);
+      });
     }
 
     if (item instanceof PopupMenu.PopupMenuItem) {
-      item.connect(
-        "activate",
-        (_item, event) => {
-          const timestamp = event?.get_time?.() ?? 0;
-          this.event(
-            id,
-            "clicked",
-            new GLib.Variant("i", 0),
-            timestamp,
-          );
-        },
-      );
+      item.connect("activate", (_item, event) => {
+        const timestamp = event?.get_time?.() ?? 0;
+        this.event(id, "clicked", new GLib.Variant("i", 0), timestamp);
+      });
     }
 
     return item;
@@ -243,10 +224,7 @@ export class DBusMenuClient {
       return;
     }
 
-    const icon = new St.Icon({
-      iconSize: 20,
-      styleClass: "popup-menu-icon",
-    });
+    const icon = new St.Icon({ iconSize: 20, styleClass: "popup-menu-icon" });
 
     /*
      * Keep the row label expandable.

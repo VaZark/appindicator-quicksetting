@@ -1,5 +1,5 @@
-import { StatusNotifierWatcher } from "./statusNotifierWatcher.js";
 import { createSignalManager, resetDisposable } from "../utils/lifecycle.js";
+import { StatusNotifierWatcher } from "./statusNotifierWatcher.js";
 
 /**
  * Owns the StatusNotifier protocol lifecycle and translates its signals into
