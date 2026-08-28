@@ -4,6 +4,8 @@ import Shell from "gi://Shell";
 
 import * as Signals from "resource:///org/gnome/shell/misc/signals.js";
 
+import { lookupFlatpakAppInfo } from "./appNames.js";
+
 import { STATUS_NOTIFIER_ITEM_IFACE } from "./interfaces.js";
 
 import { collectChangedPropertyNames, ICON_PROPERTIES } from "./propertyChanges.js";
@@ -80,7 +82,9 @@ export class StatusNotifierItem extends Signals.EventEmitter {
         this._cancellable,
       );
       const [pid] = result.deepUnpack();
-      const appInfo = Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo;
+      const appInfo =
+        Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo ??
+        this._getFlatpakAppInfo(pid);
       const appName = appInfo?.get_display_name();
 
       if (!this._destroyed && appName && appName !== this._appName) {
@@ -93,6 +97,18 @@ export class StatusNotifierItem extends Signals.EventEmitter {
       }
     } finally {
       this._appNameLookupPending = false;
+    }
+  }
+
+  _getFlatpakAppInfo(pid) {
+    try {
+      const metadata = new GLib.KeyFile();
+      metadata.load_from_file(`/proc/${pid}/root/.flatpak-info`, GLib.KeyFileFlags.NONE);
+
+      const appId = metadata.get_string("Application", "name");
+      return lookupFlatpakAppInfo(appId, (desktopId) => this._appSystem.lookup_app(desktopId));
+    } catch {
+      return null;
     }
   }
 
