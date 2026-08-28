@@ -3,6 +3,8 @@ import St from "gi://St";
 
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 
+import { getIndicatorName } from "./appNames.js";
+
 import { DBusMenuClient } from "./dbusMenu.js";
 
 import { SNIStatus } from "./statusNotifierItem.js";
@@ -109,7 +111,3 @@ export const RunningAppItem = GObject.registerClass(
     }
   },
 );
-
-function getIndicatorName(indicator) {
-  return indicator.title || indicator.label || indicator.id || "Application";
-}
