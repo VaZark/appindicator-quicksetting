@@ -1,33 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ExtensionController } from "../src/extensionController.js";
+import { ExtensionController } from "../src/controllers/extensionController.js";
 
 function createHarness() {
   const calls = [];
-  const handlers = new Map();
-  let nextSignalId = 1;
+  let protocolMessages;
 
   const widget = {
     addIndicator: (item) => calls.push(["add-indicator", item]),
     removeIndicator: (item) => calls.push(["remove-indicator", item]),
     destroy: () => calls.push(["destroy-widget"]),
   };
-  const watcher = {
-    connect(signal, handler) {
-      const id = nextSignalId++;
-      handlers.set(signal, { handler, id });
-      return id;
+  const protocol = {
+    start(messages) {
+      protocolMessages = messages;
+      calls.push(["start-protocol"]);
     },
-    disconnect: (id) => calls.push(["disconnect", id]),
-    destroy: () => calls.push(["destroy-watcher"]),
+    stop: () => calls.push(["stop-protocol"]),
   };
   const controller = new ExtensionController({
     createWidget: () => widget,
-    createWatcher: () => watcher,
+    createProtocol: () => protocol,
     addWidget: (toggle) => calls.push(["add-toggle", toggle]),
   });
 
-  return { calls, controller, handlers, watcher, widget };
+  return {
+    calls,
+    controller,
+    getProtocolMessages: () => protocolMessages,
+    protocol,
+    widget,
+  };
 }
 
 test("extension enable creates and adds the Quick Settings toggle", () => {
@@ -35,36 +38,31 @@ test("extension enable creates and adds the Quick Settings toggle", () => {
 
   controller.enable();
 
-  assert.deepEqual(calls, [["add-toggle", widget]]);
+  assert.deepEqual(calls, [["add-toggle", widget], ["start-protocol"]]);
   assert.equal(controller.widget, widget);
 });
 
-test("watcher events add and remove app items", () => {
-  const { calls, controller, handlers, watcher } = createHarness();
+test("protocol messages add and remove app items", () => {
+  const { calls, controller, getProtocolMessages } = createHarness();
   const item = { uniqueId: "example" };
 
   controller.enable();
-  handlers.get("item-added").handler(watcher, item);
-  handlers.get("item-removed").handler(watcher, item);
+  getProtocolMessages().indicatorAdded(item);
+  getProtocolMessages().indicatorRemoved(item);
 
-  assert.deepEqual(calls.slice(1), [
+  assert.deepEqual(calls.slice(2), [
     ["add-indicator", item],
     ["remove-indicator", item],
   ]);
 });
 
-test("extension disable disconnects the watcher and removes the toggle", () => {
+test("extension disable stops the protocol backend and removes the toggle", () => {
   const { calls, controller } = createHarness();
 
   controller.enable();
   controller.disable();
 
-  assert.deepEqual(calls.slice(1), [
-    ["disconnect", 1],
-    ["disconnect", 2],
-    ["destroy-watcher"],
-    ["destroy-widget"],
-  ]);
+  assert.deepEqual(calls.slice(2), [["stop-protocol"], ["destroy-widget"]]);
   assert.equal(controller.widget, null);
-  assert.equal(controller.watcher, null);
+  assert.equal(controller.protocol, null);
 });

@@ -1,10 +1,10 @@
 import GObject from "gi://GObject";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-import { getIndicatorName } from "./appNames.js";
-import { DBusMenuClient } from "./dbusMenu.js";
-import { setSniIcon } from "./iconUtils.js";
-import { SNIStatus } from "./statusNotifierItem.js";
+import { SNIStatus } from "../protocol/statusNotifierItem.js";
+import { getIndicatorName } from "../utils/appNames.js";
+import { setSniIcon } from "../utils/iconUtils.js";
+import { DBusMenuClient } from "../dbusMenu.js";
 
 export const RunningAppItem = GObject.registerClass(
   class RunningAppItem extends PopupMenu.PopupSubMenuMenuItem {
@@ -24,32 +24,23 @@ export const RunningAppItem = GObject.registerClass(
       this.insert_child_at_index(this._icon, 1);
 
       this._signals.push(indicator.connect("changed", () => this._sync()));
-
       this._signals.push(indicator.connect("status-changed", () => this._sync()));
-
       this._signals.push(indicator.connect("icon-changed", () => this._syncIcon()));
-
       this._signals.push(indicator.connect("menu-changed", () => this._setupMenu()));
-
       this._sync();
       this._setupMenu();
     }
 
     _sync() {
       this.label.text = getIndicatorName(this._indicator);
-
       this.visible = this._indicator.status !== SNIStatus.PASSIVE;
-
       this._syncIcon();
     }
 
     _syncIcon() {
       const attention = this._indicator.status === SNIStatus.NEEDS_ATTENTION;
-
       const name = attention ? this._indicator.attentionIconName : this._indicator.iconName;
-
       const pixmaps = attention ? this._indicator.attentionIconPixmap : this._indicator.iconPixmap;
-
       const success = setSniIcon(
         this._icon,
         { name, themePath: this._indicator.iconThemePath, pixmaps },
@@ -66,9 +57,7 @@ export const RunningAppItem = GObject.registerClass(
     }
 
     _setupMenu() {
-      this._dbusMenu?.destroy();
-      this._dbusMenu = null;
-
+      this._destroyDbusMenu();
       this.menu.removeAll();
 
       const path = this._indicator.menuPath;
@@ -76,16 +65,19 @@ export const RunningAppItem = GObject.registerClass(
 
       try {
         this._dbusMenu = new DBusMenuClient(this._indicator.busName, path);
-
         this._dbusMenu.attachToMenu(this.menu);
       } catch (e) {
         logError(e, `Unable to attach DBusMenu for ${this._indicator.id}`);
       }
     }
 
-    destroy() {
+    _destroyDbusMenu() {
       this._dbusMenu?.destroy();
       this._dbusMenu = null;
+    }
+
+    destroy() {
+      this._destroyDbusMenu();
 
       for (const id of this._signals) {
         try {
@@ -97,7 +89,6 @@ export const RunningAppItem = GObject.registerClass(
 
       this._signals = [];
       this._indicator = null;
-
       super.destroy();
     }
   },

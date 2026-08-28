@@ -9,9 +9,7 @@ export const RunningAppsWidget = GObject.registerClass(
   class RunningAppsWidget extends QuickToggle {
     _init() {
       super._init({ hasMenu: true, iconName: "go-next-symbolic" });
-
       this.menu.actor.style = "max-height: 600px;";
-
       this.title = _("Running Apps");
 
       // Use the same presentation as GNOME's Background Apps control.
@@ -59,11 +57,15 @@ export const RunningAppsWidget = GObject.registerClass(
     }
 
     addIndicator(indicator) {
-      if (this._items.add(indicator)) this.visible = true;
+      if (this._items.add(indicator)) this._syncVisibility();
     }
 
     removeIndicator(indicator) {
-      if (this._items.remove(indicator)) this.visible = this._items.size > 0;
+      if (this._items.remove(indicator)) this._syncVisibility();
+    }
+
+    _syncVisibility() {
+      this.visible = this._items.size > 0;
     }
 
     vfunc_clicked() {

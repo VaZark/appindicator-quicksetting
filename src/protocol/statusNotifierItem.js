@@ -2,7 +2,7 @@ import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import Shell from "gi://Shell";
 import * as Signals from "resource:///org/gnome/shell/misc/signals.js";
-import { lookupFlatpakAppInfo } from "./appNames.js";
+import { lookupFlatpakAppInfo } from "../utils/appNames.js";
 import { STATUS_NOTIFIER_ITEM_IFACE } from "./interfaces.js";
 import { collectChangedPropertyNames, ICON_PROPERTIES } from "./propertyChanges.js";
 
@@ -127,6 +127,10 @@ export class StatusNotifierItem extends Signals.EventEmitter {
 
     const changedNames = collectChangedPropertyNames(values, invalidated);
 
+    this._emitPropertyChanges(changedNames);
+  }
+
+  _emitPropertyChanges(changedNames) {
     this.emit("changed");
 
     if (changedNames.has("Status")) this.emit("status-changed");
@@ -145,45 +149,45 @@ export class StatusNotifierItem extends Signals.EventEmitter {
      */
     switch (signal) {
       case "NewIcon":
-        this._refreshMany(["IconName", "IconPixmap", "IconThemePath"]);
-        this.emit("icon-changed");
+        this._refreshAndEmit(["IconName", "IconPixmap", "IconThemePath"], "icon-changed");
         break;
 
       case "NewAttentionIcon":
-        this._refreshMany(["AttentionIconName", "AttentionIconPixmap", "IconThemePath"]);
-        this.emit("icon-changed");
+        this._refreshAndEmit(
+          ["AttentionIconName", "AttentionIconPixmap", "IconThemePath"],
+          "icon-changed",
+        );
         break;
 
       case "NewIconThemePath":
-        this._refreshProperty("IconThemePath");
-        this.emit("icon-changed");
+        this._refreshAndEmit(["IconThemePath"], "icon-changed");
         break;
 
       case "NewStatus":
-        this._refreshProperty("Status");
-        this.emit("status-changed");
+        this._refreshAndEmit(["Status"], "status-changed");
         break;
 
       case "NewTitle":
-        this._refreshProperty("Title");
-        this.emit("changed");
+        this._refreshAndEmit(["Title"], "changed");
         break;
 
       case "NewToolTip":
-        this._refreshProperty("ToolTip");
-        this.emit("changed");
+        this._refreshAndEmit(["ToolTip"], "changed");
         break;
 
       case "NewMenu":
-        this._refreshProperty("Menu");
-        this.emit("menu-changed");
+        this._refreshAndEmit(["Menu"], "menu-changed");
         break;
 
       case "XAyatanaNewLabel":
-        this._refreshProperty("XAyatanaLabel");
-        this.emit("changed");
+        this._refreshAndEmit(["XAyatanaLabel"], "changed");
         break;
     }
+  }
+
+  _refreshAndEmit(propertyNames, signal) {
+    this._refreshMany(propertyNames);
+    this.emit(signal);
   }
 
   _refreshMany(names) {
