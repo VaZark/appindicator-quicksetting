@@ -19,16 +19,13 @@
   "type": "module",
   "main": "extension.js",
   "scripts": {
+    "build": "mkdir -p dist && gnome-extensions pack --force --out-dir=dist --extra-source=src .",
     "test": "node --test",
     "mock:indicator": "gjs -m test/mock-indicator.gjs",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check",
-    "prepare": "husky",
-    "pre-commit": "lint-staged"
+    "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
-    "husky": "^9.1.7",
-    "lint-staged": "^17.4.1",
     "oxfmt": "^0.65.0"
   },
   "lint-staged": {

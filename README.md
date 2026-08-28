@@ -14,7 +14,6 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
   - [x] App Icon and menu
   - [x] Submenu
   - [x] Scrollable on overflow (hardcoded to 600px atm)
-- [ ] Add per-application inclusion/exclusion settings
 
 > [!NOTE]
 > This extension provides the `org.kde.StatusNotifierWatcher` service itself.
@@ -25,7 +24,17 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 
 ## Credits
 
-A lot of the implementation is based on the AppIndicator/KStatusNotifier extensions.
+A lot of the implementation is based on the [AppIndicator/KStatusNotifier](https://github.com/ubuntu/gnome-shell-extension-appindicator) extension.
+
+## Build
+
+Create an installable GNOME Shell extension bundle with:
+
+```sh
+npm run build
+```
+
+The bundle is written to `dist/appindicator-quicksetting.shell-extension.zip`. It contains only the extension runtime files; tests, package metadata, dependencies, and development configuration are excluded.
 
 ## Menu stress-test indicator
 
@@ -35,10 +44,9 @@ With the extension enabled, run:
 npm run mock:indicator
 ```
 
-This publishes a disposable NordVPN-like StatusNotifierItem with two-item, exactly five-item,
-long, and deeply nested DBusMenu submenus. Stop it with `Ctrl+C`.
+This publishes a disposable NordVPN-like StatusNotifierItem with short, long, and deeply nested DBusMenu submenus.
 
 ### Alternative methods I tried and abandoned
 
 - Using AppIndicator/KStatusNotifier as a Git submodule and adding an adapter, but the code was too tightly coupled and I was practically initializing the other extension.
-- Copying the Background Apps implementation, but it uses GNOME internals that provide no stability guarantees and risk breaking the extension with every update.
+- Tried altering the Background Apps implementation, but it uses GNOME internals that provide no stability guarantees and risk breaking the extension with every update.
