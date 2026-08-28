@@ -73,12 +73,7 @@ const layout = {
     item("VPN disconnected", [], { enabled: false }),
     item("Quick Connect"),
     item("Connect to", countries),
-    item("Recent connections", [
-      item("France"),
-      item("Germany"),
-      item("United Kingdom"),
-      item("United States"),
-    ]),
+    item("Recent connections", [item("France"), item("Germany")]),
     item("Specialty servers", [
       item("P2P", [
         item("Canada"),

@@ -35,7 +35,7 @@ With the extension enabled, run:
 npm run mock:indicator
 ```
 
-This publishes a disposable NordVPN-like StatusNotifierItem with short, exactly four-item,
+This publishes a disposable NordVPN-like StatusNotifierItem with two-item, exactly five-item,
 long, and deeply nested DBusMenu submenus. Stop it with `Ctrl+C`.
 
 ### Alternative methods I tried and abandoned
