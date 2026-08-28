@@ -16,7 +16,10 @@ test("prefers the desktop application's display name", () => {
 });
 
 test("falls back through the StatusNotifierItem names", () => {
-  assert.equal(getIndicatorName({ title: "Nextcloud", label: "Syncing", id: "nextcloud" }), "Nextcloud");
+  assert.equal(
+    getIndicatorName({ title: "Nextcloud", label: "Syncing", id: "nextcloud" }),
+    "Nextcloud",
+  );
   assert.equal(getIndicatorName({ label: "CopyQ", id: "copyq" }), "CopyQ");
   assert.equal(getIndicatorName({ id: "safeeyes" }), "safeeyes");
   assert.equal(getIndicatorName({}), "Application");
@@ -40,5 +43,8 @@ test("handles missing Flatpak metadata or desktop entries", () => {
 
   assert.equal(lookupFlatpakAppInfo(null, unexpectedLookup), null);
   assert.equal(lookupFlatpakAppInfo("  ", unexpectedLookup), null);
-  assert.equal(lookupFlatpakAppInfo("org.example.Missing", () => null), null);
+  assert.equal(
+    lookupFlatpakAppInfo("org.example.Missing", () => null),
+    null,
+  );
 });

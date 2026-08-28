@@ -356,7 +356,16 @@ export class StatusNotifierItem extends Signals.EventEmitter {
   }
 }
 
-function dbusCall(connection, busName, objectPath, interfaceName, method, params, replyType, cancellable) {
+function dbusCall(
+  connection,
+  busName,
+  objectPath,
+  interfaceName,
+  method,
+  params,
+  replyType,
+  cancellable,
+) {
   return new Promise((resolve, reject) => {
     connection.call(
       busName,
