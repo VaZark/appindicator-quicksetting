@@ -4,6 +4,7 @@ import GdkPixbuf from "gi://GdkPixbuf";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import St from "gi://St";
+import { setImageContentBytes } from "../compat.js";
 import { normalizeIconName } from "./iconNames.js";
 
 export { normalizeIconName } from "./iconNames.js";
@@ -119,20 +120,8 @@ export function setSniPixmap(actor, pixmaps, preferredSize = 20) {
   try {
     const imageContent = new St.ImageContent({ preferredWidth: width, preferredHeight: height });
 
-    /*
-     * GNOME < 48 and >= 48 have different set_bytes signatures.
-     * This is the same compatibility check used by Ubuntu's
-     * AppIndicator extension.
-     */
-    const coglContext = [];
-    const backend = global.stage?.context?.get_backend?.();
-
-    if (imageContent.set_bytes.length === 6 && backend?.get_cogl_context) {
-      coglContext.push(backend.get_cogl_context());
-    }
-
-    imageContent.set_bytes(
-      ...coglContext,
+    setImageContentBytes(
+      imageContent,
       new GLib.Bytes(data),
       Cogl.PixelFormat.ARGB_8888,
       width,
