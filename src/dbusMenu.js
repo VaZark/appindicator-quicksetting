@@ -5,7 +5,7 @@ import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { normalizeIconName, setDbusMenuIconData } from "./iconUtils.js";
 import { DBUS_MENU_IFACE } from "./interfaces.js";
-import { previewHeight, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./submenuLayout.js";
+import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./submenuLayout.js";
 
 export class DBusMenuClient {
   constructor(busName, objectPath) {
@@ -217,26 +217,15 @@ export class DBusMenuClient {
 
   _setSubmenuPreviewHeight(menu) {
     const children = menu.box.get_children().filter((child) => child.visible);
-    const declarations = (menu.actor.style ?? "")
-      .split(";")
-      .map((declaration) => declaration.trim())
-      .filter((declaration) => declaration && !declaration.startsWith("min-height:"));
+    const heights = children.map((child) => child.get_preferred_height(-1)[1]);
 
-    if (children.length < SUBMENU_PREVIEW_ITEMS) {
-      menu.actor.style = declarations.length > 0 ? `${declarations.join("; ")};` : null;
-      return;
-    }
-
-    const height = previewHeight(children.map((child) => child.get_preferred_height(-1)[1]));
-
-    if (height > 0) declarations.push(`min-height: ${Math.ceil(height)}px`);
-    menu.actor.style = declarations.length > 0 ? `${declarations.join("; ")};` : null;
+    menu.actor.style = previewStyle(menu.actor.style, heights);
   }
 
   _revealSubmenuPreview(menu) {
     /*
      * PopupSubMenu emits open-state-changed before showing and allocating its
-     * actor. Wait for that allocation, then reveal the first three rows in the
+     * actor. Wait for that allocation, then reveal the preview rows in the
      * nearest scrollable parent submenu.
      */
     global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
