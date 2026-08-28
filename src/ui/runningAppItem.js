@@ -4,6 +4,7 @@ import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { SNIStatus } from "../protocol/statusNotifierItem.js";
 import { getIndicatorName } from "../utils/appNames.js";
 import { setSniIcon } from "../utils/iconUtils.js";
+import { createSignalManager, resetDisposable } from "../utils/lifecycle.js";
 import { DBusMenuClient } from "../dbusMenu.js";
 
 export const RunningAppItem = GObject.registerClass(
@@ -13,7 +14,7 @@ export const RunningAppItem = GObject.registerClass(
 
       this._indicator = indicator;
       this._dbusMenu = null;
-      this._signals = [];
+      this._signals = createSignalManager();
 
       this._icon = new St.Icon({
         iconName: "application-x-executable-symbolic",
@@ -23,10 +24,10 @@ export const RunningAppItem = GObject.registerClass(
 
       this.insert_child_at_index(this._icon, 1);
 
-      this._signals.push(indicator.connect("changed", () => this._sync()));
-      this._signals.push(indicator.connect("status-changed", () => this._sync()));
-      this._signals.push(indicator.connect("icon-changed", () => this._syncIcon()));
-      this._signals.push(indicator.connect("menu-changed", () => this._setupMenu()));
+      this._signals.connect(indicator, "changed", () => this._sync());
+      this._signals.connect(indicator, "status-changed", () => this._sync());
+      this._signals.connect(indicator, "icon-changed", () => this._syncIcon());
+      this._signals.connect(indicator, "menu-changed", () => this._setupMenu());
       this._sync();
       this._setupMenu();
     }
@@ -72,22 +73,13 @@ export const RunningAppItem = GObject.registerClass(
     }
 
     _destroyDbusMenu() {
-      this._dbusMenu?.destroy();
-      this._dbusMenu = null;
+      this._dbusMenu = resetDisposable(this._dbusMenu);
     }
 
     destroy() {
       this._destroyDbusMenu();
 
-      for (const id of this._signals) {
-        try {
-          this._indicator?.disconnect(id);
-        } catch {
-          // Indicator may already be destroyed.
-        }
-      }
-
-      this._signals = [];
+      this._signals.reset();
       this._indicator = null;
       super.destroy();
     }

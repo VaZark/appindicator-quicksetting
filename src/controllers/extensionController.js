@@ -1,3 +1,5 @@
+import { resetDisposable } from "../utils/lifecycle.js";
+
 export class ExtensionController {
   constructor({ createWidget, createProtocol, addWidget }) {
     this._widgetFactory = createWidget;
@@ -34,9 +36,6 @@ export class ExtensionController {
   }
 
   _disableWidget() {
-    if (this.widget) {
-      this.widget.destroy();
-      this.widget = null;
-    }
+    this.widget = resetDisposable(this.widget);
   }
 }

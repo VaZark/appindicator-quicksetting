@@ -6,6 +6,7 @@ import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { DBUS_MENU_IFACE } from "./protocol/interfaces.js";
 import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./ui/submenuLayout.js";
 import { normalizeIconName, setDbusMenuIconData } from "./utils/iconUtils.js";
+import { createSignalManager } from "./utils/lifecycle.js";
 
 export class DBusMenuClient {
   constructor(busName, objectPath) {
@@ -13,8 +14,8 @@ export class DBusMenuClient {
     this._objectPath = objectPath;
     this._destroyed = false;
     this._menu = null;
-    this._menuSignal = 0;
     this._laterIds = new Set();
+    this._signals = createSignalManager();
 
     this._proxy = Gio.DBusProxy.new_for_bus_sync(
       Gio.BusType.SESSION,
@@ -26,7 +27,8 @@ export class DBusMenuClient {
       null,
     );
 
-    this._signalId = this._proxy.connect(
+    this._signals.connect(
+      this._proxy,
       "g-signal",
       (_proxy, _sender, signal, _params) => {
         if (signal === "LayoutUpdated" || signal === "ItemsPropertiesUpdated") {
@@ -38,7 +40,8 @@ export class DBusMenuClient {
 
   attachToMenu(menu) {
     this._menu = menu;
-    this._menuSignal = menu.connect(
+    this._signals.connect(
+      menu,
       "open-state-changed",
       (_menu, open) => {
         if (!open) return;
@@ -342,24 +345,7 @@ export class DBusMenuClient {
 
     this._laterIds.clear();
 
-    if (this._menu && this._menuSignal) {
-      try {
-        this._menu.disconnect(this._menuSignal);
-      } catch {
-        // already destroyed
-      }
-    }
-
-    if (this._proxy && this._signalId) {
-      try {
-        this._proxy.disconnect(this._signalId);
-      } catch {
-        // already destroyed
-      }
-    }
-
-    this._menuSignal = 0;
-    this._signalId = 0;
+    this._signals.reset();
     this._proxy = null;
     this._menu = null;
   }
