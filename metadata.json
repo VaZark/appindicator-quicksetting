@@ -2,6 +2,6 @@
   "name": "AppIndicator QuickSetting",
   "description": "Shows AppIndicator and KStatusNotifierItem applications in the Quick Settings menu.",
   "uuid": "appindicator-quicksetting@vazark.github.io",
-  "shell-version": ["50"],
+  "shell-version": ["50", "49", "48"],
   "url": "https://github.com/VaZark/appindicator-quicksetting"
 }
