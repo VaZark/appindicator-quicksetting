@@ -1,3 +1,5 @@
+import * as UpstreamInterfaces from "../vendor/gnome-shell-extension-appindicator/interfaces.js";
+
 export const STATUS_NOTIFIER_WATCHER_IFACE = "org.kde.StatusNotifierWatcher";
 
 export const STATUS_NOTIFIER_ITEM_IFACE = "org.kde.StatusNotifierItem";
@@ -7,6 +9,14 @@ export const DBUS_MENU_IFACE = "com.canonical.dbusmenu";
 export const WATCHER_PATH = "/StatusNotifierWatcher";
 
 export const DEFAULT_ITEM_PATH = "/StatusNotifierItem";
+
+export function initializeUpstream(extension) {
+  UpstreamInterfaces.initialize(extension);
+}
+
+export function destroyUpstream() {
+  UpstreamInterfaces.destroy();
+}
 
 export const STATUS_NOTIFIER_WATCHER_XML = `
 <node>

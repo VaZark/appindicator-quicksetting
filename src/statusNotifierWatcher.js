@@ -1,354 +1,67 @@
-import Gio from "gi://Gio";
-import GLib from "gi://GLib";
+import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
-import * as Signals from "resource:///org/gnome/shell/misc/signals.js";
-
-import { STATUS_NOTIFIER_WATCHER_XML, WATCHER_PATH, DEFAULT_ITEM_PATH } from "./interfaces.js";
+import * as UpstreamWatcher from "../vendor/gnome-shell-extension-appindicator/statusNotifierWatcher.js";
 
 import { StatusNotifierItem } from "./statusNotifierItem.js";
 
-const WATCHER_BUS_NAME = "org.kde.StatusNotifierWatcher";
+export const WATCHER_BUS_NAME = UpstreamWatcher.WATCHER_BUS_NAME;
 
-export class StatusNotifierWatcher extends Signals.EventEmitter {
-  constructor() {
-    super();
-
-    this._destroyed = false;
+export class StatusNotifierWatcher {
+  constructor(extension) {
     this._items = new Map();
+    this._destroyed = false;
+    this._watchDog = { nameAcquired: false, nameOnBus: true };
 
-    this._dbusImpl = null;
-    this._nameId = 0;
-    this._connection = null;
+    const owner = this;
+    this._upstream = new (class extends UpstreamWatcher.StatusNotifierWatcher {
+      async _registerItem(service, busName, objectPath) {
+        const previous = new Set(this._items.keys());
+        await super._registerItem(service, busName, objectPath);
 
-    /*
-     * Do NOT export /StatusNotifierWatcher yet.
-     *
-     * First request ownership of the well-known name.
-     */
-    this._nameId = Gio.bus_own_name(
-      Gio.BusType.SESSION,
-      WATCHER_BUS_NAME,
-      Gio.BusNameOwnerFlags.NONE,
+        const indicator = [...this._items.entries()].find(([key]) => !previous.has(key))?.[1];
 
-      /*
-       * bus acquired
-       */
-      (connection) => {
-        this._connection = connection;
-      },
+        if (!indicator) return;
 
-      /*
-       * name acquired
-       */
-      (connection) => {
-        if (this._destroyed) return;
+        const item = new StatusNotifierItem(indicator);
+        owner._items.set(item.uniqueId, item);
+        item.connect("destroy", () => owner._remove(item));
+        owner.emit("item-added", item);
 
-        try {
-          this._exportWatcher(connection);
-        } catch (e) {
-          logError(e, "Unable to export StatusNotifierWatcher");
-
-          /*
-           * Don't leave half-initialized state behind.
-           */
-          this._unexportWatcher();
-          return;
-        }
-
-        this._onNameAcquired();
-
-        GLib.idle_add(GLib.PRIORITY_LOW, () => {
-          if (!this._destroyed) this._discoverExistingItems();
-
-          return GLib.SOURCE_REMOVE;
-        });
-      },
-
-      /*
-       * name lost
-       */
-      () => {
-        if (this._destroyed) return;
-
-        this._onNameLost();
-      },
-    );
-  }
-
-  _exportWatcher(connection) {
-    if (this._dbusImpl) return;
-
-    const impl = Gio.DBusExportedObject.wrapJSObject(STATUS_NOTIFIER_WATCHER_XML, this);
-
-    /*
-     * export() can throw if another extension inside the same
-     * gnome-shell process already exported this exact
-     * interface/path.
-     *
-     * Keep it local until export succeeds so cleanup remains
-     * deterministic.
-     */
-    impl.export(connection, WATCHER_PATH);
-
-    this._dbusImpl = impl;
-  }
-
-  _unexportWatcher() {
-    if (!this._dbusImpl) return;
-
-    try {
-      this._dbusImpl.unexport();
-    } catch (e) {
-      logError(e, "Unable to unexport StatusNotifierWatcher");
-    }
-
-    try {
-      this._dbusImpl.run_dispose();
-    } catch {
-      // Already disposed.
-    }
-
-    this._dbusImpl = null;
-  }
-
-  _onNameAcquired() {
-    console.log("[AppIndicator Quick Settings] " + "StatusNotifierWatcher acquired");
-
-    this._emitSignal("StatusNotifierHostRegistered", null);
-  }
-
-  _onNameLost() {
-    console.warn(
-      "[AppIndicator Quick Settings] " +
-        "org.kde.StatusNotifierWatcher is already owned. " +
-        "Disable any other AppIndicator/KStatusNotifierItem " +
-        "GNOME Shell extension.",
-    );
-  }
-
-  async RegisterStatusNotifierItemAsync(params, invocation) {
-    const [service] = params;
-
-    try {
-      let busName;
-      let objectPath;
-
-      /*
-       * Ayatana/libappindicator frequently registers the object
-       * path and expects us to use the method caller as bus name.
-       */
-      if (service.startsWith("/")) {
-        busName = invocation.get_sender();
-
-        objectPath = service;
-      } else {
-        busName = await this._resolveBusName(service);
-
-        objectPath = DEFAULT_ITEM_PATH;
+        const panelIcon = Main.panel.statusArea[`appindicator-${item.uniqueId}`];
+        panelIcon?.destroy();
       }
-
-      if (!busName) {
-        throw new Error(`Unable to resolve StatusNotifierItem ${service}`);
-      }
-
-      this._register(busName, objectPath, service);
-
-      invocation.return_value(null);
-    } catch (e) {
-      logError(e);
-
-      invocation.return_dbus_error("org.gnome.gjs.StatusNotifierError", e.message);
-    }
+    })(extension, this._watchDog);
   }
 
-  RegisterStatusNotifierHostAsync(_params, invocation) {
-    /*
-     * We ARE the visualization host, so additional host tracking
-     * isn't important to our current implementation.
-     */
-    invocation.return_value(null);
-
-    this._emitSignal("StatusNotifierHostRegistered", null);
+  connect(signal, callback) {
+    if (!this._signals) this._signals = new Map();
+    const id = Symbol(signal);
+    this._signals.set(id, { signal, callback });
+    return id;
   }
 
-  async _resolveBusName(name) {
-    if (name.startsWith(":")) return name;
-
-    try {
-      const result = await Gio.DBus.session.call(
-        "org.freedesktop.DBus",
-        "/org/freedesktop/DBus",
-        "org.freedesktop.DBus",
-        "GetNameOwner",
-        new GLib.Variant("(s)", [name]),
-        new GLib.VariantType("(s)"),
-        Gio.DBusCallFlags.NONE,
-        1000,
-        null,
-      );
-
-      const [owner] = result.deep_unpack();
-
-      return owner;
-    } catch {
-      return null;
-    }
+  disconnect(id) {
+    this._signals?.delete(id);
   }
 
-  _register(busName, objectPath, service = null) {
-    const key = `${busName}${objectPath}`;
-
-    if (this._items.has(key)) return this._items.get(key);
-
-    let item;
-
-    try {
-      item = new StatusNotifierItem(busName, objectPath, service);
-    } catch (e) {
-      logError(e, `Could not create StatusNotifierItem ${key}`);
-
-      return null;
+  emit(signal, ...args) {
+    for (const { signal: name, callback } of this._signals?.values() ?? []) {
+      if (name === signal) callback(this, ...args);
     }
-
-    this._items.set(key, item);
-
-    item.connect("destroy", () => {
-      this._remove(item);
-    });
-
-    this.emit("item-added", item);
-
-    this._emitSignal("StatusNotifierItemRegistered", new GLib.Variant("(s)", [item.uniqueId]));
-
-    this._emitItemsChanged();
-
-    return item;
   }
 
   _remove(item) {
-    if (!this._items.has(item.uniqueId)) return;
-
-    this._items.delete(item.uniqueId);
-
+    if (!this._items.delete(item.uniqueId)) return;
     this.emit("item-removed", item);
-
-    this._emitSignal("StatusNotifierItemUnregistered", new GLib.Variant("(s)", [item.uniqueId]));
-
-    this._emitItemsChanged();
-  }
-
-  _emitSignal(name, value) {
-    if (this._destroyed) return;
-
-    try {
-      this._dbusImpl.emit_signal(name, value);
-    } catch (e) {
-      logError(e);
-    }
-  }
-
-  _emitItemsChanged() {
-    if (this._destroyed) return;
-
-    try {
-      this._dbusImpl.emit_property_changed(
-        "RegisteredStatusNotifierItems",
-        new GLib.Variant("as", this.RegisteredStatusNotifierItems),
-      );
-    } catch (e) {
-      logError(e);
-    }
-  }
-
-  async _discoverExistingItems() {
-    if (this._destroyed) return;
-
-    let result;
-
-    try {
-      result = await Gio.DBus.session.call(
-        "org.freedesktop.DBus",
-        "/org/freedesktop/DBus",
-        "org.freedesktop.DBus",
-        "ListNames",
-        null,
-        new GLib.VariantType("(as)"),
-        Gio.DBusCallFlags.NONE,
-        2000,
-        null,
-      );
-    } catch (e) {
-      logError(e, "Unable to enumerate session bus");
-
-      return;
-    }
-
-    const [names] = result.deep_unpack();
-
-    /*
-     * Standard SNI applications expose a well-known service
-     * following this convention.
-     *
-     * Badly behaved applications that expose only arbitrary unique
-     * bus names require introspection scanning; we'll add that
-     * separately rather than polluting the watcher.
-     */
-    for (const name of names) {
-      if (
-        !name.startsWith("org.kde.StatusNotifierItem-") &&
-        !name.startsWith("org.freedesktop.StatusNotifierItem-")
-      ) {
-        continue;
-      }
-
-      const owner = await this._resolveBusName(name);
-
-      if (!owner) continue;
-
-      this._register(owner, DEFAULT_ITEM_PATH, name);
-    }
-  }
-
-  get RegisteredStatusNotifierItems() {
-    return Array.from(this._items.values(), (item) => item.uniqueId);
-  }
-
-  get IsStatusNotifierHostRegistered() {
-    return true;
-  }
-
-  get ProtocolVersion() {
-    return 0;
   }
 
   destroy() {
     if (this._destroyed) return;
-
     this._destroyed = true;
 
-    /*
-     * Destroy items before removing the watcher.
-     */
-    for (const item of [...this._items.values()]) {
-      item.destroy();
-    }
-
+    for (const item of this._items.values()) item.destroy();
     this._items.clear();
-
-    /*
-     * Remove exported DBus object first.
-     */
-    this._unexportWatcher();
-
-    /*
-     * Then relinquish the well-known name.
-     */
-    if (this._nameId) {
-      Gio.bus_unown_name(this._nameId);
-
-      this._nameId = 0;
-    }
-
-    this._connection = null;
+    this._upstream.destroy();
+    this._signals?.clear();
   }
 }

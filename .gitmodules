@@ -1,0 +1,3 @@
+[submodule "vendor/gnome-shell-extension-appindicator"]
+	path = vendor/gnome-shell-extension-appindicator
+	url = https://github.com/ubuntu/gnome-shell-extension-appindicator.git

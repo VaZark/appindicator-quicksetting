@@ -82,7 +82,7 @@ export const RunningAppItem = GObject.registerClass(
       if (!path) return;
 
       try {
-        this._dbusMenu = new DBusMenuClient(this._indicator.busName, path);
+        this._dbusMenu = new DBusMenuClient(this._indicator.busName, path, this._indicator);
 
         this._dbusMenu.attachToMenu(this.menu);
       } catch (e) {

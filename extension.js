@@ -3,11 +3,15 @@ import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 
 import { StatusNotifierWatcher } from "./src/statusNotifierWatcher.js";
+import { destroyUpstream, initializeUpstream } from "./src/interfaces.js";
 
 import { RunningAppsWidget } from "./src/runningAppsWidget.js";
 
 export default class AppIndicatorQuickSettingsExtension extends Extension {
   enable() {
+    const upstreamPath = this.dir.get_child("vendor").get_child("gnome-shell-extension-appindicator");
+    initializeUpstream({ dir: upstreamPath, path: upstreamPath.get_path() });
+
     this._widget = new RunningAppsWidget();
 
     // This is a full-width Quick Settings widget, like Background Apps, rather
@@ -15,7 +19,7 @@ export default class AppIndicatorQuickSettingsExtension extends Extension {
     // registering a (hidden) panel indicator solely to host the widget.
     Main.panel.statusArea.quickSettings.menu.addItem(this._widget, 2);
 
-    this._watcher = new StatusNotifierWatcher();
+    this._watcher = new StatusNotifierWatcher(this);
 
     this._addedId = this._watcher.connect("item-added", (_watcher, item) => {
       this._widget.addIndicator(item);
@@ -36,6 +40,8 @@ export default class AppIndicatorQuickSettingsExtension extends Extension {
 
       this._watcher = null;
     }
+
+    destroyUpstream();
 
     this._addedId = 0;
 

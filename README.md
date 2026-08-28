@@ -25,9 +25,11 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 
 ## Credits
 
-A lot of the implementation is based on the AppIndicator/KStatusNotifier extensions.
+A protocol implementation is vendored from the
+[Ubuntu AppIndicator/KStatusNotifierItem GNOME Shell extension](https://github.com/ubuntu/gnome-shell-extension-appindicator)
+as a pinned Git submodule. This project wraps its watcher, indicator, and DBusMenu
+objects while retaining the Quick Settings widget UI.
 
 ### Alternative methods I tried and abandoned
 
-- Using AppIndicator/KStatusNotifier as a Git submodule and adding an adapter, but the code was too tightly coupled and I was practically initializing the other extension.
 - Copying the Background Apps implementation, but it uses GNOME internals that provide no stability guarantees and risk breaking the extension with every update.
