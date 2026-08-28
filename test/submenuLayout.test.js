@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { previewHeight, previewStyle, revealAdjustment } from "../src/submenuLayout.js";
+import { previewHeight, previewStyle, revealAdjustment } from "../src/ui/submenuLayout.js";
 
 test("submenu preview height includes the first five items", () => {
   assert.equal(previewHeight([36, 40, 38, 50, 42, 60]), 206);

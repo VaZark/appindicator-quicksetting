@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getIndicatorName, lookupFlatpakAppInfo } from "../src/appNames.js";
+import { getIndicatorName, lookupFlatpakAppInfo } from "../src/utils/appNames.js";
 
 test("prefers the desktop application's display name", () => {
   assert.equal(

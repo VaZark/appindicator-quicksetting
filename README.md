@@ -10,10 +10,10 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 
 ## Goals
 
-* [x] Tries to behave like the normal AppIndicator tray, just inside Quick Settings
-   [x] App icon and menu
-   [x] Submenus
-  - [x] Scrollable on overflow *(currently hardcoded to 600px)*
+- [x] Tries to behave like the normal AppIndicator tray, just inside Quick Settings
+      [x] App icon and menu
+      [x] Submenus
+  - [x] Scrollable on overflow _(currently hardcoded to 600px)_
 
 > [!NOTE]
 > This extension provides the `org.kde.StatusNotifierWatcher` service itself.
@@ -65,8 +65,8 @@ This publishes a disposable StatusNotifierItem containing short, long, and deepl
 
 ### Alternative methods I tried and abandoned
 
-* **Using AppIndicator/KStatusNotifierItem as a Git submodule with an adapter.**
+- **Using AppIndicator/KStatusNotifierItem as a Git submodule with an adapter.**
   The code was too tightly coupled, and I was effectively initializing the other extension rather than cleanly reusing it.
 
-* **Modifying GNOME's Background Apps implementation.**
+- **Modifying GNOME's Background Apps implementation.**
   It relies on GNOME internals that provide no stability guarantees, which risks breaking the extension with every GNOME update.

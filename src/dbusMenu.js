@@ -3,42 +3,33 @@ import GLib from "gi://GLib";
 import Meta from "gi://Meta";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-import { normalizeIconName, setDbusMenuIconData } from "./iconUtils.js";
-import { DBUS_MENU_IFACE } from "./interfaces.js";
-import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./submenuLayout.js";
+import { DBUS_MENU_IFACE } from "./protocol/interfaces.js";
+import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./ui/submenuLayout.js";
+import { normalizeIconName, setDbusMenuIconData } from "./utils/iconUtils.js";
+import { createSignalManager } from "./utils/lifecycle.js";
 
 export class DBusMenuClient {
   constructor(busName, objectPath) {
     this._busName = busName;
-
     this._objectPath = objectPath;
-
     this._destroyed = false;
-
     this._menu = null;
-
-    this._menuSignal = 0;
-
     this._laterIds = new Set();
+    this._signals = createSignalManager();
 
     this._proxy = Gio.DBusProxy.new_for_bus_sync(
       Gio.BusType.SESSION,
-
       Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES,
-
       null,
-
       busName,
       objectPath,
-
       DBUS_MENU_IFACE,
-
       null,
     );
 
-    this._signalId = this._proxy.connect(
+    this._signals.connect(
+      this._proxy,
       "g-signal",
-
       (_proxy, _sender, signal, _params) => {
         if (signal === "LayoutUpdated" || signal === "ItemsPropertiesUpdated") {
           this.reload();
@@ -49,21 +40,21 @@ export class DBusMenuClient {
 
   attachToMenu(menu) {
     this._menu = menu;
-
-    this._menuSignal = menu.connect(
+    this._signals.connect(
+      menu,
       "open-state-changed",
-
       (_menu, open) => {
         if (!open) return;
 
-        this.aboutToShow(0);
-
-        this.reload();
+        this._prepareAndReload(0);
       },
     );
 
-    this.aboutToShow(0);
+    this._prepareAndReload(0);
+  }
 
+  _prepareAndReload(id) {
+    this.aboutToShow(id);
     this.reload();
   }
 
@@ -76,19 +67,12 @@ export class DBusMenuClient {
       const result = await Gio.DBus.session.call(
         this._busName,
         this._objectPath,
-
         DBUS_MENU_IFACE,
-
         "GetLayout",
-
         new GLib.Variant("(iias)", [0, -1, []]),
-
         null,
-
         Gio.DBusCallFlags.NONE,
-
         3000,
-
         null,
       );
 
@@ -97,9 +81,7 @@ export class DBusMenuClient {
       }
 
       const unpacked = result.deep_unpack();
-
       const layout = normalizeVariant(unpacked[1]);
-
       this._render(layout);
     } catch (e) {
       if (e.matches?.(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
@@ -116,14 +98,10 @@ export class DBusMenuClient {
     }
 
     this._menu.removeAll();
-
     const [_rootId, _rootProperties, children] = root;
-
     for (const child of children ?? []) {
       const node = normalizeVariant(child);
-
       const item = this._createMenuItem(node);
-
       if (item) {
         this._menu.addMenuItem(item);
       }
@@ -136,7 +114,6 @@ export class DBusMenuClient {
     if (!node) return null;
 
     const [id, properties, children] = node;
-
     const props = normalizeProperties(properties);
 
     if (props.visible === false) {
@@ -148,11 +125,9 @@ export class DBusMenuClient {
     }
 
     const childNodes = (children ?? []).map(normalizeVariant);
-
     const hasSubmenu = props["children-display"] === "submenu" || childNodes.length > 0;
 
     let item;
-
     if (hasSubmenu) {
       item = new PopupMenu.PopupSubMenuMenuItem(cleanLabel(props.label ?? ""));
     } else {
@@ -172,7 +147,6 @@ export class DBusMenuClient {
     if (hasSubmenu) {
       for (const child of childNodes) {
         const childItem = this._createMenuItem(child);
-
         if (childItem) {
           item.menu.addMenuItem(childItem);
         }
@@ -182,15 +156,9 @@ export class DBusMenuClient {
 
       item.menu.connect(
         "open-state-changed",
-
         (_menu, open) => {
           if (!open) return;
-
-          this.event(id, "opened");
-
-          this.aboutToShow(id);
-
-          this._revealSubmenuPreview(item.menu);
+          this._openSubmenu(id, item.menu);
         },
       );
     }
@@ -198,16 +166,12 @@ export class DBusMenuClient {
     if (item instanceof PopupMenu.PopupMenuItem) {
       item.connect(
         "activate",
-
         (_item, event) => {
           const timestamp = event?.get_time?.() ?? 0;
-
           this.event(
             id,
             "clicked",
-
             new GLib.Variant("i", 0),
-
             timestamp,
           );
         },
@@ -215,6 +179,12 @@ export class DBusMenuClient {
     }
 
     return item;
+  }
+
+  _openSubmenu(id, menu) {
+    this.event(id, "opened");
+    this.aboutToShow(id);
+    this._revealSubmenuPreview(menu);
   }
 
   _setSubmenuPreviewHeight(menu) {
@@ -267,7 +237,6 @@ export class DBusMenuClient {
 
   _applyIcon(item, props) {
     const iconName = props["icon-name"];
-
     const iconData = props["icon-data"];
 
     if (!iconName && !iconData) {
@@ -276,7 +245,6 @@ export class DBusMenuClient {
 
     const icon = new St.Icon({
       iconSize: 20,
-
       styleClass: "popup-menu-icon",
     });
 
@@ -295,7 +263,6 @@ export class DBusMenuClient {
 
     if (iconName) {
       icon.iconName = normalizeIconName(iconName);
-
       return;
     }
 
@@ -308,25 +275,16 @@ export class DBusMenuClient {
     if (this._destroyed) return;
 
     data ??= new GLib.Variant("i", 0);
-
     Gio.DBus.session.call(
       this._busName,
       this._objectPath,
-
       DBUS_MENU_IFACE,
-
       "Event",
-
       new GLib.Variant("(isvu)", [id, eventName, data, timestamp]),
-
       null,
-
       Gio.DBusCallFlags.NONE,
-
       2000,
-
       null,
-
       (_connection, result) => {
         try {
           Gio.DBus.session.call_finish(result);
@@ -344,19 +302,12 @@ export class DBusMenuClient {
       const result = await Gio.DBus.session.call(
         this._busName,
         this._objectPath,
-
         DBUS_MENU_IFACE,
-
         "AboutToShow",
-
         new GLib.Variant("(i)", [id]),
-
         null,
-
         Gio.DBusCallFlags.NONE,
-
         1000,
-
         null,
       );
 
@@ -364,7 +315,6 @@ export class DBusMenuClient {
 
       if (result.is_of_type(new GLib.VariantType("(b)"))) {
         const [changed] = result.deep_unpack();
-
         if (changed) {
           this.reload();
         }
@@ -389,33 +339,14 @@ export class DBusMenuClient {
     if (this._destroyed) return;
 
     this._destroyed = true;
-
     const laters = global.compositor.get_laters();
+
     for (const id of this._laterIds) laters.remove(id);
+
     this._laterIds.clear();
 
-    if (this._menu && this._menuSignal) {
-      try {
-        this._menu.disconnect(this._menuSignal);
-      } catch {
-        // already destroyed
-      }
-    }
-
-    if (this._proxy && this._signalId) {
-      try {
-        this._proxy.disconnect(this._signalId);
-      } catch {
-        // already destroyed
-      }
-    }
-
-    this._menuSignal = 0;
-
-    this._signalId = 0;
-
+    this._signals.reset();
     this._proxy = null;
-
     this._menu = null;
   }
 }

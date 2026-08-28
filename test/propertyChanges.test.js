@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { collectChangedPropertyNames, ICON_PROPERTIES } from "../src/propertyChanges.js";
+import { collectChangedPropertyNames, ICON_PROPERTIES } from "../src/protocol/propertyChanges.js";
 
 test("collectChangedPropertyNames includes changed and invalidated properties", () => {
   const names = collectChangedPropertyNames({ Status: "Active" }, ["Menu", "IconName"]);

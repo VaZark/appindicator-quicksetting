@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { IndicatorItems } from "../src/indicatorItems.js";
+import { IndicatorItems } from "../src/ui/indicatorItems.js";
 
 function createHarness() {
   const menuItems = [];

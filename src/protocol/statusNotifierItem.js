@@ -2,7 +2,8 @@ import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import Shell from "gi://Shell";
 import * as Signals from "resource:///org/gnome/shell/misc/signals.js";
-import { lookupFlatpakAppInfo } from "./appNames.js";
+import { lookupFlatpakAppInfo } from "../utils/appNames.js";
+import { createSignalManager } from "../utils/lifecycle.js";
 import { STATUS_NOTIFIER_ITEM_IFACE } from "./interfaces.js";
 import { collectChangedPropertyNames, ICON_PROPERTIES } from "./propertyChanges.js";
 
@@ -24,6 +25,7 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     this._properties = new Map();
     this._appName = null;
     this._cancellable = new Gio.Cancellable();
+    this._signals = createSignalManager();
 
     this._proxy = Gio.DBusProxy.new_for_bus_sync(
       Gio.BusType.SESSION,
@@ -35,28 +37,27 @@ export class StatusNotifierItem extends Signals.EventEmitter {
       null,
     );
 
-    this._propertiesChangedId = this._proxy.connect(
+    this._signals.connect(
+      this._proxy,
       "g-properties-changed",
       (_proxy, changed, invalidated) => {
         this._onPropertiesChanged(changed, invalidated);
       },
     );
 
-    this._signalId = this._proxy.connect("g-signal", (_proxy, sender, signal, params) => {
+    this._signals.connect(this._proxy, "g-signal", (_proxy, sender, signal, params) => {
       this._onSignal(sender, signal, params);
     });
 
-    this._ownerId = this._proxy.connect("notify::g-name-owner", () => {
+    this._signals.connect(this._proxy, "notify::g-name-owner", () => {
       if (!this._proxy?.g_name_owner) this.destroy();
     });
 
     this._loadCachedProperties();
 
     this._appSystem = Shell.AppSystem.get_default();
-    this._appSystemSignals = [
-      this._appSystem.connect("installed-changed", () => this._updateAppName()),
-      this._appSystem.connect("app-state-changed", () => this._updateAppName()),
-    ];
+    this._signals.connect(this._appSystem, "installed-changed", () => this._updateAppName());
+    this._signals.connect(this._appSystem, "app-state-changed", () => this._updateAppName());
 
     this._updateAppName();
   }
@@ -127,6 +128,10 @@ export class StatusNotifierItem extends Signals.EventEmitter {
 
     const changedNames = collectChangedPropertyNames(values, invalidated);
 
+    this._emitPropertyChanges(changedNames);
+  }
+
+  _emitPropertyChanges(changedNames) {
     this.emit("changed");
 
     if (changedNames.has("Status")) this.emit("status-changed");
@@ -145,45 +150,45 @@ export class StatusNotifierItem extends Signals.EventEmitter {
      */
     switch (signal) {
       case "NewIcon":
-        this._refreshMany(["IconName", "IconPixmap", "IconThemePath"]);
-        this.emit("icon-changed");
+        this._refreshAndEmit(["IconName", "IconPixmap", "IconThemePath"], "icon-changed");
         break;
 
       case "NewAttentionIcon":
-        this._refreshMany(["AttentionIconName", "AttentionIconPixmap", "IconThemePath"]);
-        this.emit("icon-changed");
+        this._refreshAndEmit(
+          ["AttentionIconName", "AttentionIconPixmap", "IconThemePath"],
+          "icon-changed",
+        );
         break;
 
       case "NewIconThemePath":
-        this._refreshProperty("IconThemePath");
-        this.emit("icon-changed");
+        this._refreshAndEmit(["IconThemePath"], "icon-changed");
         break;
 
       case "NewStatus":
-        this._refreshProperty("Status");
-        this.emit("status-changed");
+        this._refreshAndEmit(["Status"], "status-changed");
         break;
 
       case "NewTitle":
-        this._refreshProperty("Title");
-        this.emit("changed");
+        this._refreshAndEmit(["Title"], "changed");
         break;
 
       case "NewToolTip":
-        this._refreshProperty("ToolTip");
-        this.emit("changed");
+        this._refreshAndEmit(["ToolTip"], "changed");
         break;
 
       case "NewMenu":
-        this._refreshProperty("Menu");
-        this.emit("menu-changed");
+        this._refreshAndEmit(["Menu"], "menu-changed");
         break;
 
       case "XAyatanaNewLabel":
-        this._refreshProperty("XAyatanaLabel");
-        this.emit("changed");
+        this._refreshAndEmit(["XAyatanaLabel"], "changed");
         break;
     }
+  }
+
+  _refreshAndEmit(propertyNames, signal) {
+    this._refreshMany(propertyNames);
+    this.emit(signal);
   }
 
   _refreshMany(names) {
@@ -331,20 +336,7 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     this._cancellable.cancel();
     this.emit("destroy");
 
-    for (const id of this._appSystemSignals) this._appSystem.disconnect(id);
-
-    if (this._proxy) {
-      if (this._propertiesChangedId) this._proxy.disconnect(this._propertiesChangedId);
-
-      if (this._signalId) this._proxy.disconnect(this._signalId);
-
-      if (this._ownerId) this._proxy.disconnect(this._ownerId);
-    }
-
-    this._propertiesChangedId = 0;
-    this._signalId = 0;
-    this._ownerId = 0;
-    this._appSystemSignals = [];
+    this._signals.reset();
     this._appSystem = null;
     this._cancellable = null;
     this._proxy = null;

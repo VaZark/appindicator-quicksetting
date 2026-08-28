@@ -210,11 +210,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
       this._remove(item);
     });
 
-    this.emit("item-added", item);
-
-    this._emitSignal("StatusNotifierItemRegistered", new GLib.Variant("(s)", [item.uniqueId]));
-
-    this._emitItemsChanged();
+    this._announceItemChange("added", "Registered", item);
 
     return item;
   }
@@ -224,10 +220,12 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
 
     this._items.delete(item.uniqueId);
 
-    this.emit("item-removed", item);
+    this._announceItemChange("removed", "Unregistered", item);
+  }
 
-    this._emitSignal("StatusNotifierItemUnregistered", new GLib.Variant("(s)", [item.uniqueId]));
-
+  _announceItemChange(event, dbusEvent, item) {
+    this.emit(`item-${event}`, item);
+    this._emitSignal(`StatusNotifierItem${dbusEvent}`, new GLib.Variant("(s)", [item.uniqueId]));
     this._emitItemsChanged();
   }
 
