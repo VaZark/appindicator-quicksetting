@@ -16,20 +16,27 @@ export const RunningAppItem = GObject.registerClass(
       this._dbusMenu = null;
       this._signals = createSignalManager();
 
-      this._icon = new St.Icon({
+      this._icon = this._createIcon();
+      this.insert_child_at_index(this._icon, 1);
+
+      this._connectIndicatorSignals();
+      this._sync();
+      this._setupMenu();
+    }
+
+    _createIcon() {
+      return new St.Icon({
         iconName: "application-x-executable-symbolic",
         iconSize: 20,
         styleClass: "popup-menu-icon",
       });
+    }
 
-      this.insert_child_at_index(this._icon, 1);
-
-      this._signals.connect(indicator, "changed", () => this._sync());
-      this._signals.connect(indicator, "status-changed", () => this._sync());
-      this._signals.connect(indicator, "icon-changed", () => this._syncIcon());
-      this._signals.connect(indicator, "menu-changed", () => this._setupMenu());
-      this._sync();
-      this._setupMenu();
+    _connectIndicatorSignals() {
+      this._signals.connect(this._indicator, "changed", () => this._sync());
+      this._signals.connect(this._indicator, "status-changed", () => this._sync());
+      this._signals.connect(this._indicator, "icon-changed", () => this._syncIcon());
+      this._signals.connect(this._indicator, "menu-changed", () => this._setupMenu());
     }
 
     _sync() {
@@ -50,6 +57,10 @@ export const RunningAppItem = GObject.registerClass(
 
       if (success) return;
 
+      this._setFallbackIcon();
+    }
+
+    _setFallbackIcon() {
       this._icon.content = null;
       this._icon.gicon = null;
       this._icon.iconName = "application-x-executable-symbolic";

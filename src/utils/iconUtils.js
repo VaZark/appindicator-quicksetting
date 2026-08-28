@@ -4,7 +4,6 @@ import GdkPixbuf from "gi://GdkPixbuf";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import St from "gi://St";
-import { setImageContentBytes } from "../compat.js";
 import { normalizeIconName } from "./iconNames.js";
 
 export { normalizeIconName } from "./iconNames.js";
@@ -118,23 +117,8 @@ export function setSniPixmap(actor, pixmaps, preferredSize = 20) {
   if (data.length < width * height * 4) return false;
 
   try {
-    const imageContent = new St.ImageContent({ preferredWidth: width, preferredHeight: height });
-
-    setImageContentBytes(
-      imageContent,
-      new GLib.Bytes(data),
-      Cogl.PixelFormat.ARGB_8888,
-      width,
-      height,
-      width * 4,
-    );
-
-    actor.set({
-      content: imageContent,
-      width: preferredSize,
-      height: preferredSize,
-      contentGravity: Clutter.ContentGravity.RESIZE_ASPECT,
-    });
+    const imageContent = createPixmapContent(width, height, data);
+    setActorImageContent(actor, imageContent, preferredSize);
 
     return true;
   } catch (e) {
@@ -152,11 +136,7 @@ export async function setDbusMenuIconData(actor, iconData) {
   if (!iconData) return false;
 
   try {
-    const bytes =
-      iconData instanceof GLib.Variant
-        ? iconData.get_data_as_bytes()
-        : new GLib.Bytes(iconData instanceof Uint8Array ? iconData : Uint8Array.from(iconData));
-
+    const bytes = getIconDataBytes(iconData);
     const stream = Gio.MemoryInputStream.new_from_bytes(bytes);
 
     actor.gicon = await GdkPixbuf.Pixbuf.new_from_stream_async(stream, null);
@@ -212,4 +192,44 @@ function deepUnpack(value) {
   while (value instanceof GLib.Variant) value = value.deep_unpack();
 
   return value;
+}
+
+function createPixmapContent(width, height, data) {
+  const imageContent = new St.ImageContent({ preferredWidth: width, preferredHeight: height });
+
+  setImageContentBytes(
+    imageContent,
+    new GLib.Bytes(data),
+    Cogl.PixelFormat.ARGB_8888,
+    width,
+    height,
+    width * 4,
+  );
+
+  return imageContent;
+}
+
+function setActorImageContent(actor, content, size) {
+  actor.set({
+    content,
+    width: size,
+    height: size,
+    contentGravity: Clutter.ContentGravity.RESIZE_ASPECT,
+  });
+}
+
+function getIconDataBytes(iconData) {
+  if (iconData instanceof GLib.Variant) return iconData.get_data_as_bytes();
+
+  const data = iconData instanceof Uint8Array ? iconData : Uint8Array.from(iconData);
+  return new GLib.Bytes(data);
+}
+
+function setImageContentBytes(imageContent, bytes, format, width, height, rowStride) {
+  const backend = global.stage?.context?.get_backend?.();
+  const coglContext = backend?.get_cogl_context?.();
+
+  if (!coglContext) throw new Error("GNOME Shell did not provide a Cogl context");
+
+  imageContent.set_bytes(coglContext, bytes, format, width, height, rowStride);
 }

@@ -27,7 +27,15 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     this._cancellable = new Gio.Cancellable();
     this._signals = createSignalManager();
 
-    this._proxy = Gio.DBusProxy.new_for_bus_sync(
+    this._proxy = this._createProxy(busName, objectPath);
+    this._connectProxySignals();
+    this._loadCachedProperties();
+    this._connectAppSystemSignals();
+    this._updateAppName();
+  }
+
+  _createProxy(busName, objectPath) {
+    return Gio.DBusProxy.new_for_bus_sync(
       Gio.BusType.SESSION,
       Gio.DBusProxyFlags.NONE,
       null,
@@ -36,7 +44,9 @@ export class StatusNotifierItem extends Signals.EventEmitter {
       STATUS_NOTIFIER_ITEM_IFACE,
       null,
     );
+  }
 
+  _connectProxySignals() {
     this._signals.connect(this._proxy, "g-properties-changed", (_proxy, changed, invalidated) => {
       this._onPropertiesChanged(changed, invalidated);
     });
@@ -48,14 +58,12 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     this._signals.connect(this._proxy, "notify::g-name-owner", () => {
       if (!this._proxy?.g_name_owner) this.destroy();
     });
+  }
 
-    this._loadCachedProperties();
-
+  _connectAppSystemSignals() {
     this._appSystem = Shell.AppSystem.get_default();
     this._signals.connect(this._appSystem, "installed-changed", () => this._updateAppName());
     this._signals.connect(this._appSystem, "app-state-changed", () => this._updateAppName());
-
-    this._updateAppName();
   }
 
   async _updateAppName() {

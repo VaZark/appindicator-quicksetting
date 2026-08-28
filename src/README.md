@@ -4,7 +4,7 @@
 - `protocol/` owns StatusNotifier DBus registration, models, interfaces, and watcher lifecycle.
 - `ui/` contains GNOME Shell actors, menu items, layout, and presentation state.
 - `utils/` contains stateless naming and icon helpers.
-- `compat.js` centralizes GNOME Shell version and feature compatibility.
+- `compat.js` is the home for version-dispatched compatibility functions when supported GNOME releases differ.
 - `dbusMenu.js` remains at the root because it is the shared boundary between DBusMenu protocol calls and GNOME menu rendering.
 
 Commands in the other direction use the explicit methods exposed by the protocol-backed indicator and DBus menu objects, such as `activate()`, `scroll()`, `event()`, and `aboutToShow()`.

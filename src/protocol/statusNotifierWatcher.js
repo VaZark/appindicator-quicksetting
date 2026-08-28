@@ -18,6 +18,10 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
     this._idleSourceId = 0;
     this._connection = null;
 
+    this._ownBusName();
+  }
+
+  _ownBusName() {
     /*
      * Do NOT export /StatusNotifierWatcher yet.
      *
@@ -31,48 +35,52 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
       /*
        * bus acquired
        */
-      (connection) => {
-        this._connection = connection;
-      },
+      (connection) => this._onBusAcquired(connection),
 
       /*
        * name acquired
        */
-      (connection) => {
-        if (this._destroyed) return;
-
-        try {
-          this._exportWatcher(connection);
-        } catch (e) {
-          logError(e, "Unable to export StatusNotifierWatcher");
-
-          /*
-           * Don't leave half-initialized state behind.
-           */
-          this._unexportWatcher();
-          return;
-        }
-
-        this._onNameAcquired();
-
-        this._idleSourceId = GLib.idle_add(GLib.PRIORITY_LOW, () => {
-          this._idleSourceId = 0;
-
-          if (!this._destroyed) this._discoverExistingItems();
-
-          return GLib.SOURCE_REMOVE;
-        });
-      },
+      (connection) => this._handleNameAcquired(connection),
 
       /*
        * name lost
        */
-      () => {
-        if (this._destroyed) return;
-
-        this._onNameLost();
-      },
+      () => this._handleNameLost(),
     );
+  }
+
+  _onBusAcquired(connection) {
+    this._connection = connection;
+  }
+
+  _handleNameAcquired(connection) {
+    if (this._destroyed || !this._tryExportWatcher(connection)) return;
+
+    this._onNameAcquired();
+    this._scheduleItemDiscovery();
+  }
+
+  _tryExportWatcher(connection) {
+    try {
+      this._exportWatcher(connection);
+      return true;
+    } catch (e) {
+      logError(e, "Unable to export StatusNotifierWatcher");
+      this._unexportWatcher();
+      return false;
+    }
+  }
+
+  _scheduleItemDiscovery() {
+    this._idleSourceId = GLib.idle_add(GLib.PRIORITY_LOW, () => {
+      this._idleSourceId = 0;
+      if (!this._destroyed) this._discoverExistingItems();
+      return GLib.SOURCE_REMOVE;
+    });
+  }
+
+  _handleNameLost() {
+    if (!this._destroyed) this._onNameLost();
   }
 
   _exportWatcher(connection) {
@@ -124,22 +132,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
     const [service] = params;
 
     try {
-      let busName;
-      let objectPath;
-
-      /*
-       * Ayatana/libappindicator frequently registers the object
-       * path and expects us to use the method caller as bus name.
-       */
-      if (service.startsWith("/")) {
-        busName = invocation.get_sender();
-
-        objectPath = service;
-      } else {
-        busName = await this._resolveBusName(service);
-
-        objectPath = DEFAULT_ITEM_PATH;
-      }
+      const { busName, objectPath } = await this._resolveRegistration(service, invocation);
 
       if (!busName) {
         throw new Error(`Unable to resolve StatusNotifierItem ${service}`);
@@ -153,6 +146,21 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
 
       invocation.return_dbus_error("org.gnome.gjs.StatusNotifierError", e.message);
     }
+  }
+
+  async _resolveRegistration(service, invocation) {
+    /*
+     * Ayatana/libappindicator frequently registers the object path and expects
+     * us to use the method caller as bus name.
+     */
+    if (service.startsWith("/")) {
+      return { busName: invocation.get_sender(), objectPath: service };
+    }
+
+    return {
+      busName: await this._resolveBusName(service),
+      objectPath: DEFAULT_ITEM_PATH,
+    };
   }
 
   RegisterStatusNotifierHostAsync(_params, invocation) {
@@ -317,35 +325,32 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
     if (this._destroyed) return;
 
     this._destroyed = true;
+    this._cancelItemDiscovery();
+    this._destroyItems();
+    this._unexportWatcher();
+    this._releaseBusName();
+    this._connection = null;
+  }
 
+  _cancelItemDiscovery() {
     if (this._idleSourceId) {
       GLib.Source.remove(this._idleSourceId);
       this._idleSourceId = 0;
     }
+  }
 
-    /*
-     * Destroy items before removing the watcher.
-     */
+  _destroyItems() {
     for (const item of [...this._items.values()]) {
       item.destroy();
     }
 
     this._items.clear();
+  }
 
-    /*
-     * Remove exported DBus object first.
-     */
-    this._unexportWatcher();
-
-    /*
-     * Then relinquish the well-known name.
-     */
+  _releaseBusName() {
     if (this._nameId) {
       Gio.bus_unown_name(this._nameId);
-
       this._nameId = 0;
     }
-
-    this._connection = null;
   }
 }

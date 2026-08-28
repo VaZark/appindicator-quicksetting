@@ -9,6 +9,14 @@ export const RunningAppsWidget = GObject.registerClass(
   class RunningAppsWidget extends QuickToggle {
     _init() {
       super._init({ hasMenu: true, iconName: "go-next-symbolic" });
+
+      this._configureAppearance();
+      this._initializeItems();
+      this._overrideSubmenuTracking();
+      this._connectWidgetSignals();
+    }
+
+    _configureAppearance() {
       this.menu.actor.style = "max-height: 600px;";
       this.title = _("Running Apps");
 
@@ -17,13 +25,17 @@ export const RunningAppsWidget = GObject.registerClass(
       this._box.set_child_above_sibling(this._icon, null);
 
       this.menu.setHeader("preferences-desktop-multitasking-symbolic", _("Running Apps"));
+    }
 
+    _initializeItems() {
       this._items = new IndicatorItems(
         (indicator) => new RunningAppItem(indicator),
         (item) => this.menu.addMenuItem(item),
       );
       this.visible = false;
+    }
 
+    _overrideSubmenuTracking() {
       /*
        * GNOME normally assumes one submenu level:
        *
@@ -44,7 +56,9 @@ export const RunningAppsWidget = GObject.registerClass(
       this.menu._setOpenedSubMenu = (submenu) => {
         this._setOpenedSubMenu(submenu);
       };
+    }
 
+    _connectWidgetSignals() {
       this.connect("popup-menu", () => {
         this.menu.open();
       });

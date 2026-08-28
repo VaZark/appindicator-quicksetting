@@ -118,14 +118,25 @@ export class DBusMenuClient {
 
     const childNodes = (children ?? []).map(normalizeVariant);
     const hasSubmenu = props["children-display"] === "submenu" || childNodes.length > 0;
+    const item = this._createStandardItem(props, hasSubmenu);
 
-    let item;
-    if (hasSubmenu) {
-      item = new PopupMenu.PopupSubMenuMenuItem(cleanLabel(props.label ?? ""));
-    } else {
-      item = new PopupMenu.PopupMenuItem(cleanLabel(props.label ?? ""));
-    }
+    this._applyItemState(item, props);
+    this._applyIcon(item, props);
 
+    if (hasSubmenu) this._populateSubmenu(item, id, childNodes);
+    if (item instanceof PopupMenu.PopupMenuItem) this._connectItemActivation(item, id);
+
+    return item;
+  }
+
+  _createStandardItem(props, hasSubmenu) {
+    const label = cleanLabel(props.label ?? "");
+    return hasSubmenu
+      ? new PopupMenu.PopupSubMenuMenuItem(label)
+      : new PopupMenu.PopupMenuItem(label);
+  }
+
+  _applyItemState(item, props) {
     item.setSensitive(props.enabled !== false);
 
     if (props["toggle-type"] === "checkmark" && props["toggle-state"] > 0) {
@@ -133,33 +144,25 @@ export class DBusMenuClient {
     } else if (props["toggle-type"] === "radio" && props["toggle-state"] > 0) {
       item.setOrnament(PopupMenu.Ornament.DOT);
     }
+  }
 
-    this._applyIcon(item, props);
-
-    if (hasSubmenu) {
-      for (const child of childNodes) {
-        const childItem = this._createMenuItem(child);
-        if (childItem) {
-          item.menu.addMenuItem(childItem);
-        }
-      }
-
-      this._setSubmenuPreviewHeight(item.menu);
-
-      item.menu.connect("open-state-changed", (_menu, open) => {
-        if (!open) return;
-        this._openSubmenu(id, item.menu);
-      });
+  _populateSubmenu(item, id, childNodes) {
+    for (const child of childNodes) {
+      const childItem = this._createMenuItem(child);
+      if (childItem) item.menu.addMenuItem(childItem);
     }
 
-    if (item instanceof PopupMenu.PopupMenuItem) {
-      item.connect("activate", (_item, event) => {
-        const timestamp = event?.get_time?.() ?? 0;
-        this.event(id, "clicked", new GLib.Variant("i", 0), timestamp);
-      });
-    }
+    this._setSubmenuPreviewHeight(item.menu);
+    item.menu.connect("open-state-changed", (_menu, open) => {
+      if (open) this._openSubmenu(id, item.menu);
+    });
+  }
 
-    return item;
+  _connectItemActivation(item, id) {
+    item.connect("activate", (_item, event) => {
+      const timestamp = event?.get_time?.() ?? 0;
+      this.event(id, "clicked", new GLib.Variant("i", 0), timestamp);
+    });
   }
 
   _openSubmenu(id, menu) {
@@ -184,36 +187,36 @@ export class DBusMenuClient {
     const laters = global.compositor.get_laters();
     const laterId = laters.add(Meta.LaterType.BEFORE_REDRAW, () => {
       this._laterIds.delete(laterId);
-
-      if (this._destroyed || !menu.isOpen) return GLib.SOURCE_REMOVE;
-
-      const scrollView = menu._parent?.actor;
-      const adjustment = scrollView?.get_vadjustment?.();
-      const children = menu.box.get_children().filter((child) => child.visible);
-      const lastPreviewItem = children[Math.min(children.length, SUBMENU_PREVIEW_ITEMS) - 1];
-
-      if (!adjustment || !lastPreviewItem || adjustment.page_size <= 0) {
-        return GLib.SOURCE_REMOVE;
-      }
-
-      const [, menuY] = menu.actor.get_transformed_position();
-      const [, itemY] = lastPreviewItem.get_transformed_position();
-      const [, itemHeight] = lastPreviewItem.get_transformed_size();
-      const [, scrollY] = scrollView.get_transformed_position();
-      const targetTop = adjustment.value + menuY - scrollY;
-      const targetBottom = adjustment.value + itemY + itemHeight - scrollY;
-
-      adjustment.value = revealAdjustment(
-        adjustment.value,
-        adjustment.page_size,
-        adjustment.upper,
-        targetTop,
-        targetBottom,
-      );
-
+      this._revealAllocatedSubmenu(menu);
       return GLib.SOURCE_REMOVE;
     });
     this._laterIds.add(laterId);
+  }
+
+  _revealAllocatedSubmenu(menu) {
+    if (this._destroyed || !menu.isOpen) return;
+
+    const scrollView = menu._parent?.actor;
+    const adjustment = scrollView?.get_vadjustment?.();
+    const children = menu.box.get_children().filter((child) => child.visible);
+    const lastPreviewItem = children[Math.min(children.length, SUBMENU_PREVIEW_ITEMS) - 1];
+
+    if (!adjustment || !lastPreviewItem || adjustment.page_size <= 0) return;
+
+    const [, menuY] = menu.actor.get_transformed_position();
+    const [, itemY] = lastPreviewItem.get_transformed_position();
+    const [, itemHeight] = lastPreviewItem.get_transformed_size();
+    const [, scrollY] = scrollView.get_transformed_position();
+    const targetTop = adjustment.value + menuY - scrollY;
+    const targetBottom = adjustment.value + itemY + itemHeight - scrollY;
+
+    adjustment.value = revealAdjustment(
+      adjustment.value,
+      adjustment.page_size,
+      adjustment.upper,
+      targetTop,
+      targetBottom,
+    );
   }
 
   _applyIcon(item, props) {
