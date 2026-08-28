@@ -1,9 +1,11 @@
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
+import Meta from "gi://Meta";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { normalizeIconName, setDbusMenuIconData } from "./iconUtils.js";
 import { DBUS_MENU_IFACE } from "./interfaces.js";
+import { previewHeight, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./submenuLayout.js";
 
 export class DBusMenuClient {
   constructor(busName, objectPath) {
@@ -124,6 +126,8 @@ export class DBusMenuClient {
         this._menu.addMenuItem(item);
       }
     }
+
+    this._setSubmenuPreviewHeight(this._menu);
   }
 
   _createMenuItem(node) {
@@ -172,6 +176,8 @@ export class DBusMenuClient {
         }
       }
 
+      this._setSubmenuPreviewHeight(item.menu);
+
       item.menu.connect(
         "open-state-changed",
 
@@ -181,6 +187,8 @@ export class DBusMenuClient {
           this.event(id, "opened");
 
           this.aboutToShow(id);
+
+          this._revealSubmenuPreview(item.menu);
         },
       );
     }
@@ -205,6 +213,61 @@ export class DBusMenuClient {
     }
 
     return item;
+  }
+
+  _setSubmenuPreviewHeight(menu) {
+    const children = menu.box.get_children().filter((child) => child.visible);
+    const declarations = (menu.actor.style ?? "")
+      .split(";")
+      .map((declaration) => declaration.trim())
+      .filter((declaration) => declaration && !declaration.startsWith("min-height:"));
+
+    if (children.length < SUBMENU_PREVIEW_ITEMS) {
+      menu.actor.style = declarations.length > 0 ? `${declarations.join("; ")};` : null;
+      return;
+    }
+
+    const height = previewHeight(children.map((child) => child.get_preferred_height(-1)[1]));
+
+    if (height > 0) declarations.push(`min-height: ${Math.ceil(height)}px`);
+    menu.actor.style = declarations.length > 0 ? `${declarations.join("; ")};` : null;
+  }
+
+  _revealSubmenuPreview(menu) {
+    /*
+     * PopupSubMenu emits open-state-changed before showing and allocating its
+     * actor. Wait for that allocation, then reveal the first three rows in the
+     * nearest scrollable parent submenu.
+     */
+    global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+      if (this._destroyed || !menu.isOpen) return GLib.SOURCE_REMOVE;
+
+      const scrollView = menu._parent?.actor;
+      const adjustment = scrollView?.get_vadjustment?.();
+      const children = menu.box.get_children().filter((child) => child.visible);
+      const lastPreviewItem = children[Math.min(children.length, SUBMENU_PREVIEW_ITEMS) - 1];
+
+      if (!adjustment || !lastPreviewItem || adjustment.page_size <= 0) {
+        return GLib.SOURCE_REMOVE;
+      }
+
+      const [, menuY] = menu.actor.get_transformed_position();
+      const [, itemY] = lastPreviewItem.get_transformed_position();
+      const [, itemHeight] = lastPreviewItem.get_transformed_size();
+      const [, scrollY] = scrollView.get_transformed_position();
+      const targetTop = adjustment.value + menuY - scrollY;
+      const targetBottom = adjustment.value + itemY + itemHeight - scrollY;
+
+      adjustment.value = revealAdjustment(
+        adjustment.value,
+        adjustment.page_size,
+        adjustment.upper,
+        targetTop,
+        targetBottom,
+      );
+
+      return GLib.SOURCE_REMOVE;
+    });
   }
 
   _applyIcon(item, props) {
