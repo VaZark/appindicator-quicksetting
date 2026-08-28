@@ -27,6 +27,17 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 
 A lot of the implementation is based on the AppIndicator/KStatusNotifier extensions.
 
+## Menu stress-test indicator
+
+With the extension enabled, run:
+
+```sh
+npm run mock:indicator
+```
+
+This publishes a disposable NordVPN-like StatusNotifierItem with short, exactly four-item,
+long, and deeply nested DBusMenu submenus. Stop it with `Ctrl+C`.
+
 ### Alternative methods I tried and abandoned
 
 - Using AppIndicator/KStatusNotifier as a Git submodule and adding an adapter, but the code was too tightly coupled and I was practically initializing the other extension.

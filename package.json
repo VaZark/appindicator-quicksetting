@@ -20,6 +20,7 @@
   "main": "extension.js",
   "scripts": {
     "test": "node --test",
+    "mock:indicator": "gjs -m test/mock-indicator.gjs",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "prepare": "husky",
