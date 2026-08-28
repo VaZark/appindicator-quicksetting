@@ -34,7 +34,7 @@ Create an installable GNOME Shell extension bundle with:
 npm run build
 ```
 
-The bundle is written to `dist/appindicator-quicksetting.shell-extension.zip`. It contains only the extension runtime files; tests, package metadata, dependencies, and development configuration are excluded.
+The bundle is written to `dist/appindicator-quicksetting@vazark.github.io.shell-extension.zip`. It contains only the extension runtime files, license, and attribution; tests, package metadata, dependencies, and development configuration are excluded.
 
 ## Menu stress-test indicator
 
