@@ -1,6 +1,7 @@
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
 import * as UpstreamWatcher from "../vendor/gnome-shell-extension-appindicator/statusNotifierWatcher.js";
+import * as UpstreamUtil from "../vendor/gnome-shell-extension-appindicator/util.js";
 
 import { StatusNotifierItem } from "./statusNotifierItem.js";
 
@@ -15,10 +16,9 @@ export class StatusNotifierWatcher {
     const owner = this;
     this._upstream = new (class extends UpstreamWatcher.StatusNotifierWatcher {
       async _registerItem(service, busName, objectPath) {
-        const previous = new Set(this._items.keys());
         await super._registerItem(service, busName, objectPath);
 
-        const indicator = [...this._items.entries()].find(([key]) => !previous.has(key))?.[1];
+        const indicator = this._items.get(UpstreamUtil.indicatorId(service, busName, objectPath));
 
         if (!indicator) return;
 
