@@ -1,12 +1,8 @@
-import * as Main from "resource:///org/gnome/shell/ui/main.js";
-
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
-
+import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import { ExtensionController } from "./src/extensionController.js";
-
-import { StatusNotifierWatcher } from "./src/statusNotifierWatcher.js";
-
 import { RunningAppsWidget } from "./src/runningAppsWidget.js";
+import { StatusNotifierWatcher } from "./src/statusNotifierWatcher.js";
 
 export default class AppIndicatorQuickSettingsExtension extends Extension {
   enable() {

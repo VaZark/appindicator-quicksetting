@@ -1,22 +1,14 @@
 import GObject from "gi://GObject";
-
-import { QuickToggle } from "resource:///org/gnome/shell/ui/quickSettings.js";
-
 import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
-
+import { QuickToggle } from "resource:///org/gnome/shell/ui/quickSettings.js";
 import { IndicatorItems } from "./indicatorItems.js";
-
 import { RunningAppItem } from "./runningAppItem.js";
-
 import { setOpenedSubMenu } from "./submenuState.js";
 
 export const RunningAppsWidget = GObject.registerClass(
   class RunningAppsWidget extends QuickToggle {
     _init() {
-      super._init({
-        hasMenu: true,
-        iconName: "go-next-symbolic",
-      });
+      super._init({ hasMenu: true, iconName: "go-next-symbolic" });
 
       this.menu.actor.style = "max-height: 600px;";
 

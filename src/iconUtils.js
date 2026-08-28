@@ -4,7 +4,6 @@ import GdkPixbuf from "gi://GdkPixbuf";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import St from "gi://St";
-
 import { normalizeIconName } from "./iconNames.js";
 
 export { normalizeIconName } from "./iconNames.js";
@@ -43,9 +42,7 @@ export function setSniIcon(
   }
 
   if (name) {
-    actor.gicon = new Gio.ThemedIcon({
-      name: normalizeIconName(name),
-    });
+    actor.gicon = new Gio.ThemedIcon({ name: normalizeIconName(name) });
 
     return true;
   }
@@ -120,10 +117,7 @@ export function setSniPixmap(actor, pixmaps, preferredSize = 20) {
   if (data.length < width * height * 4) return false;
 
   try {
-    const imageContent = new St.ImageContent({
-      preferredWidth: width,
-      preferredHeight: height,
-    });
+    const imageContent = new St.ImageContent({ preferredWidth: width, preferredHeight: height });
 
     /*
      * GNOME < 48 and >= 48 have different set_bytes signatures.
@@ -220,11 +214,7 @@ function unpackPixmaps(value) {
       const [width, height, rawBytes] = entry;
       const bytes = deepUnpack(rawBytes);
 
-      return {
-        width,
-        height,
-        bytes,
-      };
+      return { width, height, bytes };
     })
     .filter(Boolean);
 }

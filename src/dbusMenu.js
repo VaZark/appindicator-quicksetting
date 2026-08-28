@@ -1,12 +1,9 @@
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import St from "gi://St";
-
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-
-import { DBUS_MENU_IFACE } from "./interfaces.js";
-
 import { normalizeIconName, setDbusMenuIconData } from "./iconUtils.js";
+import { DBUS_MENU_IFACE } from "./interfaces.js";
 
 export class DBusMenuClient {
   constructor(busName, objectPath) {

@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import { setOpenedSubMenu } from "../src/submenuState.js";
 
 function createMenu(parent = null) {

@@ -1,15 +1,10 @@
 import GObject from "gi://GObject";
 import St from "gi://St";
-
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-
 import { getIndicatorName } from "./appNames.js";
-
 import { DBusMenuClient } from "./dbusMenu.js";
-
-import { SNIStatus } from "./statusNotifierItem.js";
-
 import { setSniIcon } from "./iconUtils.js";
+import { SNIStatus } from "./statusNotifierItem.js";
 
 export const RunningAppItem = GObject.registerClass(
   class RunningAppItem extends PopupMenu.PopupSubMenuMenuItem {
@@ -57,11 +52,7 @@ export const RunningAppItem = GObject.registerClass(
 
       const success = setSniIcon(
         this._icon,
-        {
-          name,
-          themePath: this._indicator.iconThemePath,
-          pixmaps,
-        },
+        { name, themePath: this._indicator.iconThemePath, pixmaps },
         20,
       );
 

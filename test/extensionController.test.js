@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import { ExtensionController } from "../src/extensionController.js";
 
 function createHarness() {

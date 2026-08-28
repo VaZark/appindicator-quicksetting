@@ -1,16 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import { IndicatorItems } from "../src/indicatorItems.js";
 
 function createHarness() {
   const menuItems = [];
   const destroyedIds = [];
   const items = new IndicatorItems(
-    (indicator) => ({
-      indicator,
-      destroy: () => destroyedIds.push(indicator.uniqueId),
-    }),
+    (indicator) => ({ indicator, destroy: () => destroyedIds.push(indicator.uniqueId) }),
     (item) => menuItems.push(item),
   );
 

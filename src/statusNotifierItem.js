@@ -1,13 +1,9 @@
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import Shell from "gi://Shell";
-
 import * as Signals from "resource:///org/gnome/shell/misc/signals.js";
-
 import { lookupFlatpakAppInfo } from "./appNames.js";
-
 import { STATUS_NOTIFIER_ITEM_IFACE } from "./interfaces.js";
-
 import { collectChangedPropertyNames, ICON_PROPERTIES } from "./propertyChanges.js";
 
 export const SNIStatus = Object.freeze({

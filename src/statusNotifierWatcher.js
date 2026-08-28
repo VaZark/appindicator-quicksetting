@@ -1,10 +1,7 @@
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
-
 import * as Signals from "resource:///org/gnome/shell/misc/signals.js";
-
 import { STATUS_NOTIFIER_WATCHER_XML, WATCHER_PATH, DEFAULT_ITEM_PATH } from "./interfaces.js";
-
 import { StatusNotifierItem } from "./statusNotifierItem.js";
 
 const WATCHER_BUS_NAME = "org.kde.StatusNotifierWatcher";

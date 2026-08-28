@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import { normalizeIconName } from "../src/iconNames.js";
 
 test("normalizeIconName removes supported file extensions", () => {
