@@ -28,6 +28,7 @@ test("adds an app item to the menu once", () => {
   assert.equal(menuItems[0], item);
   assert.equal(item.indicator, indicator);
   assert.equal(duplicate, null);
+  assert.equal(items.size, 1);
 });
 
 test("removes and destroys an app item", () => {
@@ -37,6 +38,7 @@ test("removes and destroys an app item", () => {
   items.add(indicator);
 
   assert.equal(items.remove(indicator), true);
+  assert.equal(items.size, 0);
   assert.deepEqual(destroyedIds, [indicator.uniqueId]);
   assert.equal(items.remove(indicator), false);
   assert.deepEqual(destroyedIds, [indicator.uniqueId]);

@@ -32,6 +32,7 @@ export const RunningAppsWidget = GObject.registerClass(
         (indicator) => new RunningAppItem(indicator),
         (item) => this.menu.addMenuItem(item),
       );
+      this.visible = false;
 
       /*
        * GNOME normally assumes one submenu level:
@@ -66,11 +67,11 @@ export const RunningAppsWidget = GObject.registerClass(
     }
 
     addIndicator(indicator) {
-      this._items.add(indicator);
+      if (this._items.add(indicator)) this.visible = true;
     }
 
     removeIndicator(indicator) {
-      this._items.remove(indicator);
+      if (this._items.remove(indicator)) this.visible = this._items.size > 0;
     }
 
     vfunc_clicked() {

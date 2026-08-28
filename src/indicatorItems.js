@@ -5,6 +5,10 @@ export class IndicatorItems {
     this._items = new Map();
   }
 
+  get size() {
+    return this._items.size;
+  }
+
   add(indicator) {
     if (this._items.has(indicator.uniqueId)) return null;
 
