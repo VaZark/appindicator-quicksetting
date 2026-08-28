@@ -7,8 +7,8 @@
   "bugs": {
     "url": "https://github.com/VaZark/appindicator-quicksetting/issues"
   },
-  "license": "ISC",
-  "author": "",
+  "license": "GPL-2.0-or-later",
+  "author": "Vasanth M",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/VaZark/appindicator-quicksetting.git"
@@ -19,7 +19,7 @@
   "type": "module",
   "main": "extension.js",
   "scripts": {
-    "build": "mkdir -p dist && gnome-extensions pack --force --out-dir=dist --extra-source=src .",
+    "build": "mkdir -p dist && gnome-extensions pack --force --out-dir=dist --extra-source=src --extra-source=COPYING --extra-source=CREDITS .",
     "test": "node --test",
     "mock:indicator": "gjs -m test/mock-indicator.gjs",
     "fmt": "oxfmt",

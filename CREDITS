@@ -1,0 +1,9 @@
+AppIndicator QuickSetting
+Copyright (C) 2026 Vasanth M
+
+Parts of this extension are based on Ubuntu's AppIndicator and
+KStatusNotifierItem Support extension:
+https://github.com/ubuntu/gnome-shell-extension-appindicator
+
+That project is licensed under GPL-2.0-or-later and includes work by
+its listed contributors.

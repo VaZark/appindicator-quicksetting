@@ -15,6 +15,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
 
     this._dbusImpl = null;
     this._nameId = 0;
+    this._idleSourceId = 0;
     this._connection = null;
 
     /*
@@ -54,7 +55,9 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
 
         this._onNameAcquired();
 
-        GLib.idle_add(GLib.PRIORITY_LOW, () => {
+        this._idleSourceId = GLib.idle_add(GLib.PRIORITY_LOW, () => {
+          this._idleSourceId = 0;
+
           if (!this._destroyed) this._discoverExistingItems();
 
           return GLib.SOURCE_REMOVE;
@@ -97,12 +100,6 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
       this._dbusImpl.unexport();
     } catch (e) {
       logError(e, "Unable to unexport StatusNotifierWatcher");
-    }
-
-    try {
-      this._dbusImpl.run_dispose();
-    } catch {
-      // Already disposed.
     }
 
     this._dbusImpl = null;
@@ -322,6 +319,11 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
     if (this._destroyed) return;
 
     this._destroyed = true;
+
+    if (this._idleSourceId) {
+      GLib.Source.remove(this._idleSourceId);
+      this._idleSourceId = 0;
+    }
 
     /*
      * Destroy items before removing the watcher.

@@ -19,6 +19,8 @@ export class DBusMenuClient {
 
     this._menuSignal = 0;
 
+    this._laterIds = new Set();
+
     this._proxy = Gio.DBusProxy.new_for_bus_sync(
       Gio.BusType.SESSION,
 
@@ -228,7 +230,10 @@ export class DBusMenuClient {
      * actor. Wait for that allocation, then reveal the preview rows in the
      * nearest scrollable parent submenu.
      */
-    global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+    const laters = global.compositor.get_laters();
+    const laterId = laters.add(Meta.LaterType.BEFORE_REDRAW, () => {
+      this._laterIds.delete(laterId);
+
       if (this._destroyed || !menu.isOpen) return GLib.SOURCE_REMOVE;
 
       const scrollView = menu._parent?.actor;
@@ -257,6 +262,7 @@ export class DBusMenuClient {
 
       return GLib.SOURCE_REMOVE;
     });
+    this._laterIds.add(laterId);
   }
 
   _applyIcon(item, props) {
@@ -383,6 +389,10 @@ export class DBusMenuClient {
     if (this._destroyed) return;
 
     this._destroyed = true;
+
+    const laters = global.compositor.get_laters();
+    for (const id of this._laterIds) laters.remove(id);
+    this._laterIds.clear();
 
     if (this._menu && this._menuSignal) {
       try {
