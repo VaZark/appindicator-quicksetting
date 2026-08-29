@@ -38,7 +38,7 @@ export const RunningAppsWidget = GObject.registerClass(
 
     _initializeItems() {
       this._items = new IndicatorItems(
-        (indicator) => new RunningAppItem(indicator),
+        (indicator) => new RunningAppItem(indicator, this._settings),
         (item) => this.menu.addMenuItem(item),
       );
       this.visible = false;
