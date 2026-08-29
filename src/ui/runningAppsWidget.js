@@ -1,9 +1,9 @@
 import GObject from "gi://GObject";
 import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
 import { QuickToggle } from "resource:///org/gnome/shell/ui/quickSettings.js";
+import { enableNestedSubmenuTracking } from "../compat.js";
 import { IndicatorItems } from "./indicatorItems.js";
 import { RunningAppItem } from "./runningAppItem.js";
-import { setOpenedSubMenu } from "./submenuState.js";
 
 const MAX_MENU_HEIGHT_KEY = "max-menu-height";
 
@@ -15,7 +15,7 @@ export const RunningAppsWidget = GObject.registerClass(
       this._settings = settings;
       this._configureAppearance();
       this._initializeItems();
-      this._overrideSubmenuTracking();
+      this._disableNestedSubmenuTracking = enableNestedSubmenuTracking(this.menu);
       this._connectWidgetSignals();
     }
 
@@ -44,29 +44,6 @@ export const RunningAppsWidget = GObject.registerClass(
       this.visible = false;
     }
 
-    _overrideSubmenuTracking() {
-      /*
-       * GNOME normally assumes one submenu level:
-       *
-       * root
-       *   -> submenu
-       *
-       * We have:
-       *
-       * root
-       *   -> RunningAppItem.menu
-       *      -> DBusMenu submenu
-       *
-       * Opening the DBusMenu submenu must not close
-       * RunningAppItem.menu.
-       */
-      this._originalSetOpenedSubMenu = this.menu._setOpenedSubMenu;
-
-      this.menu._setOpenedSubMenu = (submenu) => {
-        this._setOpenedSubMenu(submenu);
-      };
-    }
-
     _connectWidgetSignals() {
       this._settingsChangedId = this._settings.connect(`changed::${MAX_MENU_HEIGHT_KEY}`, () =>
         this._syncMaxMenuHeight(),
@@ -77,10 +54,6 @@ export const RunningAppsWidget = GObject.registerClass(
       });
 
       this.connect("destroy", () => this._onDestroy());
-    }
-
-    _setOpenedSubMenu(submenu) {
-      setOpenedSubMenu(this.menu, submenu);
     }
 
     addIndicator(indicator) {
@@ -106,14 +79,8 @@ export const RunningAppsWidget = GObject.registerClass(
       this._settingsChangedId = 0;
       this._settings = null;
 
-      /*
-       * Restore GNOME's original method.
-       */
-      if (this._originalSetOpenedSubMenu) {
-        this.menu._setOpenedSubMenu = this._originalSetOpenedSubMenu;
-      }
-
-      this._originalSetOpenedSubMenu = null;
+      this._disableNestedSubmenuTracking?.();
+      this._disableNestedSubmenuTracking = null;
 
       this._items.destroyAll();
     }
