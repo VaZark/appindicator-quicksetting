@@ -13,7 +13,7 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 - [x] Tries to behave like the normal AppIndicator tray, just inside Quick Settings
   - [x] App icon and menu
   - [x] Submenus
-  - [x] Scrollable on overflow _(currently hardcoded to 600px)_
+  - [x] Scrollable on overflow with a configurable maximum height
 
 > [!NOTE]
 > This extension provides the `org.kde.StatusNotifierWatcher` service itself.
@@ -33,7 +33,13 @@ ln -s path/to/appindicator-quicksetting@vazark.github.io \
   ~/.local/share/gnome-shell/extensions/appindicator-quicksetting@vazark.github.io
 ```
 
-2. Start a nested GNOME Shell development environment:
+2. Compile the settings schema (and repeat this after changing it):
+
+```sh
+npm run schemas
+```
+
+3. Start a nested GNOME Shell development environment:
 
 ```sh
 dbus-run-session gnome-shell --devkit --wayland
@@ -47,7 +53,17 @@ Create an installable GNOME Shell extension bundle with:
 npm run build
 ```
 
-The bundle is written to `dist/appindicator-quicksetting@vazark.github.io.zip`. It contains only the extension runtime files, license, and attribution. Tests, package metadata, dependencies, and development configuration are excluded.
+The bundle is written to `dist/appindicator-quicksetting@vazark.github.io.shell-extension.zip`. It contains only the extension runtime files, license, and attribution. Tests, package metadata, dependencies, and development configuration are excluded.
+
+### Preferences
+
+Open the preferences window from an extension manager or from the command line:
+
+```sh
+gnome-extensions prefs appindicator-quicksetting@vazark.github.io
+```
+
+The maximum Running Apps menu height is stored with GSettings and applied immediately while the extension is enabled.
 
 ### Menu stress-test indicator
 

@@ -1,7 +1,5 @@
 import * as Config from "resource:///org/gnome/shell/misc/config.js";
-
-export const SHELL_VERSION = Config.PACKAGE_VERSION;
-export const SHELL_MAJOR_VERSION = Number.parseInt(SHELL_VERSION, 10);
+const [major, minor] = Config.PACKAGE_VERSION.split(".").map((s) => Number(s));
 
 /**
  * Example :

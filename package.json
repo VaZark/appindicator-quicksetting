@@ -19,7 +19,8 @@
   "type": "module",
   "main": "extension.js",
   "scripts": {
-    "build": "mkdir -p dist && gnome-extensions pack --force --out-dir=dist --extra-source=src --extra-source=LICENSE --extra-source=CREDITS .",
+    "build": "npm run schemas && rm -rf dist && mkdir -p dist/src && cp extension.js prefs.js metadata.json stylesheet.css LICENSE CREDITS dist/ && cp -r schemas dist/ && cp src/dbusMenu.js dist/src/ && cp -r src/controllers src/protocol src/ui src/utils dist/src/ && gnome-extensions pack --force --out-dir=dist --extra-source=src --extra-source=LICENSE --extra-source=CREDITS dist",
+    "schemas": "glib-compile-schemas --strict schemas",
     "test": "node --test",
     "mock:indicator": "gjs -m test/mock-indicator.gjs",
     "fmt": "oxfmt",

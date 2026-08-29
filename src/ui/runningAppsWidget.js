@@ -5,11 +5,14 @@ import { IndicatorItems } from "./indicatorItems.js";
 import { RunningAppItem } from "./runningAppItem.js";
 import { setOpenedSubMenu } from "./submenuState.js";
 
+const MAX_MENU_HEIGHT_KEY = "max-menu-height";
+
 export const RunningAppsWidget = GObject.registerClass(
   class RunningAppsWidget extends QuickToggle {
-    _init() {
+    _init(settings) {
       super._init({ hasMenu: true, iconName: "go-next-symbolic" });
 
+      this._settings = settings;
       this._configureAppearance();
       this._initializeItems();
       this._overrideSubmenuTracking();
@@ -17,7 +20,7 @@ export const RunningAppsWidget = GObject.registerClass(
     }
 
     _configureAppearance() {
-      this.menu.actor.style = "max-height: 600px;";
+      this._syncMaxMenuHeight();
       this.title = _("Running Apps");
 
       // Use the same presentation as GNOME's Background Apps control.
@@ -25,6 +28,11 @@ export const RunningAppsWidget = GObject.registerClass(
       this._box.set_child_above_sibling(this._icon, null);
 
       this.menu.setHeader("preferences-desktop-multitasking-symbolic", _("Running Apps"));
+    }
+
+    _syncMaxMenuHeight() {
+      const height = this._settings.get_int(MAX_MENU_HEIGHT_KEY);
+      this.menu.actor.style = `max-height: ${height}px;`;
     }
 
     _initializeItems() {
@@ -59,6 +67,10 @@ export const RunningAppsWidget = GObject.registerClass(
     }
 
     _connectWidgetSignals() {
+      this._settingsChangedId = this._settings.connect(`changed::${MAX_MENU_HEIGHT_KEY}`, () =>
+        this._syncMaxMenuHeight(),
+      );
+
       this.connect("popup-menu", () => {
         this.menu.open();
       });
@@ -87,6 +99,12 @@ export const RunningAppsWidget = GObject.registerClass(
     }
 
     _onDestroy() {
+      if (this._settingsChangedId) {
+        this._settings.disconnect(this._settingsChangedId);
+      }
+      this._settingsChangedId = 0;
+      this._settings = null;
+
       /*
        * Restore GNOME's original method.
        */

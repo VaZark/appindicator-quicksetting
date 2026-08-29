@@ -6,8 +6,10 @@ import { RunningAppsWidget } from "./src/ui/runningAppsWidget.js";
 
 export default class AppIndicatorQuickSettingsExtension extends Extension {
   enable() {
+    this._settings = this.getSettings();
+
     this._controller = new ExtensionController({
-      createWidget: () => new RunningAppsWidget(),
+      createWidget: () => new RunningAppsWidget(this._settings),
       createProtocol: () => new ProtocolController(),
       // This is a full-width Quick Settings widget, like Background Apps.
       addWidget: (widget) => Main.panel.statusArea.quickSettings.menu.addItem(widget, 2),
@@ -18,5 +20,6 @@ export default class AppIndicatorQuickSettingsExtension extends Extension {
   disable() {
     this._controller?.disable();
     this._controller = null;
+    this._settings = null;
   }
 }

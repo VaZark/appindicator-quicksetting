@@ -157,10 +157,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
       return { busName: invocation.get_sender(), objectPath: service };
     }
 
-    return {
-      busName: await this._resolveBusName(service),
-      objectPath: DEFAULT_ITEM_PATH,
-    };
+    return { busName: await this._resolveBusName(service), objectPath: DEFAULT_ITEM_PATH };
   }
 
   RegisterStatusNotifierHostAsync(_params, invocation) {
