@@ -7,13 +7,16 @@ import { getIndicatorName } from "../utils/appNames.js";
 import { setSniIcon } from "../utils/iconUtils.js";
 import { createSignalManager, resetDisposable } from "../utils/lifecycle.js";
 
+const HIDE_PASSIVE_INDICATORS_KEY = "hide-passive-indicators";
+
 export const RunningAppItem = GObject.registerClass(
   class RunningAppItem extends PopupMenu.PopupSubMenuMenuItem {
-    _init(indicator) {
+    _init(indicator, settings) {
       super._init(getIndicatorName(indicator));
       this.menu.actor.add_style_class_name("running-app-submenu");
 
       this._indicator = indicator;
+      this._settings = settings;
       this._dbusMenu = null;
       this._signals = createSignalManager();
 
@@ -38,12 +41,22 @@ export const RunningAppItem = GObject.registerClass(
       this._signals.connect(this._indicator, "status-changed", () => this._sync());
       this._signals.connect(this._indicator, "icon-changed", () => this._syncIcon());
       this._signals.connect(this._indicator, "menu-changed", () => this._setupMenu());
+      this._signals.connect(
+        this._settings,
+        `changed::${HIDE_PASSIVE_INDICATORS_KEY}`,
+        () => this._syncVisibility(),
+      );
     }
 
     _sync() {
       this.label.text = getIndicatorName(this._indicator);
-      this.visible = this._indicator.status !== SNIStatus.PASSIVE;
+      this._syncVisibility();
       this._syncIcon();
+    }
+
+    _syncVisibility() {
+      const hidePassive = this._settings.get_boolean(HIDE_PASSIVE_INDICATORS_KEY);
+      this.visible = !hidePassive || this._indicator.status !== SNIStatus.PASSIVE;
     }
 
     _syncIcon() {
@@ -93,6 +106,7 @@ export const RunningAppItem = GObject.registerClass(
 
       this._signals.reset();
       this._indicator = null;
+      this._settings = null;
       super.destroy();
     }
   },
