@@ -11,8 +11,8 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 ## Goals
 
 - [x] Tries to behave like the normal AppIndicator tray, just inside Quick Settings
-      [x] App icon and menu
-      [x] Submenus
+  - [x] App icon and menu
+  - [x] Submenus
   - [x] Scrollable on overflow _(currently hardcoded to 600px)_
 
 > [!NOTE]
@@ -21,10 +21,6 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 > It therefore cannot run alongside another AppIndicator/KStatusNotifierItem extension that owns the same service.
 >
 > Any future filtering will control which applications appear in this extension. It will not route excluded applications to a separate system tray extension.
-
-## Credits
-
-A lot of the implementation is based on the [AppIndicator/KStatusNotifierItem](https://github.com/ubuntu/gnome-shell-extension-appindicator) extension.
 
 ## Development
 
@@ -43,7 +39,7 @@ ln -s path/to/appindicator-quicksetting@vazark.github.io \
 dbus-run-session gnome-shell --devkit --wayland
 ```
 
-## Build
+### Build
 
 Create an installable GNOME Shell extension bundle with:
 
@@ -53,7 +49,7 @@ npm run build
 
 The bundle is written to `dist/appindicator-quicksetting@vazark.github.io.zip`. It contains only the extension runtime files, license, and attribution. Tests, package metadata, dependencies, and development configuration are excluded.
 
-## Menu stress-test indicator
+### Menu stress-test indicator
 
 With the extension enabled, run:
 
@@ -63,7 +59,11 @@ npm run mock:indicator
 
 This publishes a disposable StatusNotifierItem containing short, long, and deeply nested DBusMenu submenus for testing.
 
-### Alternative methods I tried and abandoned
+## Credits
+
+A lot of the implementation is based on the [AppIndicator/KStatusNotifierItem](https://github.com/ubuntu/gnome-shell-extension-appindicator) extension.
+
+## Alternative methods I tried and abandoned
 
 - **Using AppIndicator/KStatusNotifierItem as a Git submodule with an adapter.**
   The code was too tightly coupled, and I was effectively initializing the other extension rather than cleanly reusing it.
