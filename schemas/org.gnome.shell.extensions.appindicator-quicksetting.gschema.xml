@@ -10,5 +10,10 @@
       <summary>Maximum menu height</summary>
       <description>The height in pixels at which the Running Apps menu becomes scrollable.</description>
     </key>
+    <key name="hide-passive-indicators" type="b">
+      <default>false</default>
+      <summary>Hide passive indicators</summary>
+      <description>Hide StatusNotifierItems whose status is Passive.</description>
+    </key>
   </schema>
 </schemalist>
