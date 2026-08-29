@@ -17,13 +17,14 @@ export const [major, minor] = Config.PACKAGE_VERSION.split(".").map((s) => Numbe
  */
 export function enableNestedSubmenuTracking(rootMenu) {
   const originalSetOpenedSubMenu = rootMenu._setOpenedSubMenu;
-
-  rootMenu._setOpenedSubMenu = (submenu) => {
+  const setNestedOpenedSubMenu = (submenu) => {
     setOpenedSubMenu(rootMenu, submenu);
   };
 
+  rootMenu._setOpenedSubMenu = setNestedOpenedSubMenu;
+
   return () => {
-    if (rootMenu._setOpenedSubMenu !== originalSetOpenedSubMenu) {
+    if (rootMenu._setOpenedSubMenu === setNestedOpenedSubMenu) {
       rootMenu._setOpenedSubMenu = originalSetOpenedSubMenu;
     }
   };
