@@ -11,6 +11,7 @@ export const RunningAppItem = GObject.registerClass(
   class RunningAppItem extends PopupMenu.PopupSubMenuMenuItem {
     _init(indicator) {
       super._init(getIndicatorName(indicator));
+      this.menu.actor.add_style_class_name("running-app-submenu");
 
       this._indicator = indicator;
       this._dbusMenu = null;

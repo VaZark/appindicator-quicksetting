@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema
+    id="org.gnome.shell.extensions.appindicator-quicksetting"
+    path="/org/gnome/shell/extensions/appindicator-quicksetting/"
+  >
+    <key name="max-menu-height" type="i">
+      <default>600</default>
+      <range min="200" max="1200" />
+      <summary>Maximum menu height</summary>
+      <description>The height in pixels at which the Running Apps menu becomes scrollable.</description>
+    </key>
+  </schema>
+</schemalist>

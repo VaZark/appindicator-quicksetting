@@ -147,6 +147,8 @@ export class DBusMenuClient {
   }
 
   _populateSubmenu(item, id, childNodes) {
+    item.menu.actor.add_style_class_name("running-app-submenu");
+
     for (const child of childNodes) {
       const childItem = this._createMenuItem(child);
       if (childItem) item.menu.addMenuItem(childItem);
