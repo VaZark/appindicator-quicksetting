@@ -1,3 +1,4 @@
+import Atk from "gi://Atk";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import Meta from "gi://Meta";
@@ -7,6 +8,31 @@ import { DBUS_MENU_IFACE } from "./protocol/interfaces.js";
 import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./ui/submenuLayout.js";
 import { normalizeIconName, setDbusMenuIconData } from "./utils/iconUtils.js";
 import { createSignalManager } from "./utils/lifecycle.js";
+
+const openedSubmenuByParent = new WeakMap();
+
+class DBusPopupSubMenuMenuItem extends PopupMenu.PopupSubMenuMenuItem {
+  _subMenuOpenStateChanged(_menu, open) {
+    const parent = this.menu._parent;
+
+    if (open) {
+      this.add_style_pseudo_class("open");
+
+      const current = openedSubmenuByParent.get(parent);
+      if (current && current !== this.menu) current.close(true);
+      openedSubmenuByParent.set(parent, this.menu);
+
+      this.add_accessible_state(Atk.StateType.EXPANDED);
+      this.add_style_pseudo_class("checked");
+      return;
+    }
+
+    this.remove_style_pseudo_class("open");
+    if (openedSubmenuByParent.get(parent) === this.menu) openedSubmenuByParent.delete(parent);
+    this.remove_accessible_state(Atk.StateType.EXPANDED);
+    this.remove_style_pseudo_class("checked");
+  }
+}
 
 export class DBusMenuClient {
   constructor(busName, objectPath) {
@@ -51,9 +77,7 @@ export class DBusMenuClient {
   }
 
   async reload() {
-    if (this._destroyed || !this._menu) {
-      return;
-    }
+    if (this._destroyed || !this._menu) return;
 
     try {
       const result = await Gio.DBus.session.call(
@@ -68,35 +92,25 @@ export class DBusMenuClient {
         null,
       );
 
-      if (this._destroyed || !this._menu) {
-        return;
-      }
+      if (this._destroyed || !this._menu) return;
 
       const unpacked = result.deep_unpack();
       const layout = normalizeVariant(unpacked[1]);
       this._render(layout);
     } catch (e) {
-      if (e.matches?.(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
-        return;
-      }
-
+      if (e.matches?.(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) return;
       logError(e, `Unable to load DBusMenu ${this._busName}${this._objectPath}`);
     }
   }
 
   _render(root) {
-    if (!root || !this._menu) {
-      return;
-    }
+    if (!root || !this._menu) return;
 
     this._menu.removeAll();
     const [_rootId, _rootProperties, children] = root;
     for (const child of children ?? []) {
-      const node = normalizeVariant(child);
-      const item = this._createMenuItem(node);
-      if (item) {
-        this._menu.addMenuItem(item);
-      }
+      const item = this._createMenuItem(normalizeVariant(child));
+      if (item) this._menu.addMenuItem(item);
     }
 
     this._setSubmenuPreviewHeight(this._menu);
@@ -107,14 +121,8 @@ export class DBusMenuClient {
 
     const [id, properties, children] = node;
     const props = normalizeProperties(properties);
-
-    if (props.visible === false) {
-      return null;
-    }
-
-    if (props.type === "separator") {
-      return new PopupMenu.PopupSeparatorMenuItem();
-    }
+    if (props.visible === false) return null;
+    if (props.type === "separator") return new PopupMenu.PopupSeparatorMenuItem();
 
     const childNodes = (children ?? []).map(normalizeVariant);
     const hasSubmenu = props["children-display"] === "submenu" || childNodes.length > 0;
@@ -132,7 +140,7 @@ export class DBusMenuClient {
   _createStandardItem(props, hasSubmenu) {
     const label = cleanLabel(props.label ?? "");
     return hasSubmenu
-      ? new PopupMenu.PopupSubMenuMenuItem(label)
+      ? new DBusPopupSubMenuMenuItem(label)
       : new PopupMenu.PopupMenuItem(label);
   }
 
@@ -176,16 +184,10 @@ export class DBusMenuClient {
   _setSubmenuPreviewHeight(menu) {
     const children = menu.box.get_children().filter((child) => child.visible);
     const heights = children.map((child) => child.get_preferred_height(-1)[1]);
-
     menu.actor.style = previewStyle(menu.actor.style, heights);
   }
 
   _revealSubmenuPreview(menu) {
-    /*
-     * PopupSubMenu emits open-state-changed before showing and allocating its
-     * actor. Wait for that allocation, then reveal the preview rows in the
-     * nearest scrollable parent submenu.
-     */
     const laters = global.compositor.get_laters();
     const laterId = laters.add(Meta.LaterType.BEFORE_REDRAW, () => {
       this._laterIds.delete(laterId);
@@ -224,24 +226,10 @@ export class DBusMenuClient {
   _applyIcon(item, props) {
     const iconName = props["icon-name"];
     const iconData = props["icon-data"];
-
-    if (!iconName && !iconData) {
-      return;
-    }
+    if (!iconName && !iconData) return;
 
     const icon = new St.Icon({ iconSize: 20, styleClass: "popup-menu-icon" });
-
-    /*
-     * Keep the row label expandable.
-     */
-    if (item.label) {
-      item.label.x_expand = true;
-    }
-
-    /*
-     * Put the icon near the start of the row
-     * rather than appending it at the end.
-     */
+    if (item.label) item.label.x_expand = true;
     item.insert_child_at_index(icon, 1);
 
     if (iconName) {
@@ -249,9 +237,7 @@ export class DBusMenuClient {
       return;
     }
 
-    setDbusMenuIconData(icon, iconData, 20).catch((e) => {
-      logError(e, "Unable to render DBusMenu icon");
-    });
+    setDbusMenuIconData(icon, iconData, 20).catch((e) => logError(e, "Unable to render DBusMenu icon"));
   }
 
   event(id, eventName, data = null, timestamp = 0) {
@@ -287,7 +273,7 @@ export class DBusMenuClient {
         this._objectPath,
         DBUS_MENU_IFACE,
         "AboutToShow",
-        new GLib.Variant("(i)", [id]),
+        new GLib.Variant("(i)"),
         null,
         Gio.DBusCallFlags.NONE,
         1000,
@@ -295,25 +281,15 @@ export class DBusMenuClient {
       );
 
       if (!result) return;
-
       if (result.is_of_type(new GLib.VariantType("(b)"))) {
         const [changed] = result.deep_unpack();
-        if (changed) {
-          this.reload();
-        }
+        if (changed) this.reload();
       }
     } catch (e) {
-      /*
-       * Some implementations omit or break
-       * AboutToShow.
-       */
       if (
         e.matches?.(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD) ||
         e.matches?.(Gio.DBusError, Gio.DBusError.FAILED)
-      ) {
-        return;
-      }
-
+      ) return;
       logError(e, "DBusMenu.AboutToShow");
     }
   }
@@ -323,11 +299,8 @@ export class DBusMenuClient {
 
     this._destroyed = true;
     const laters = global.compositor.get_laters();
-
     for (const id of this._laterIds) laters.remove(id);
-
     this._laterIds.clear();
-
     this._signals.reset();
     this._proxy = null;
     this._menu = null;
@@ -335,24 +308,14 @@ export class DBusMenuClient {
 }
 
 function normalizeVariant(value) {
-  while (value instanceof GLib.Variant) {
-    value = value.deep_unpack();
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(normalizeVariant);
-  }
-
+  while (value instanceof GLib.Variant) value = value.deep_unpack();
+  if (Array.isArray(value)) return value.map(normalizeVariant);
   return value;
 }
 
 function normalizeProperties(values) {
   const result = {};
-
-  for (const [name, value] of Object.entries(values ?? {})) {
-    result[name] = normalizeVariant(value);
-  }
-
+  for (const [name, value] of Object.entries(values ?? {})) result[name] = normalizeVariant(value);
   return result;
 }
 
