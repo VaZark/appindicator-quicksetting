@@ -8,3 +8,20 @@
 .running-app-item .popup-menu-icon {
   margin-right: 8px;
 }
+
+.running-app-submenu {
+  box-shadow: inset 0 -1px 0 rgba(128, 128, 128, 0.18);
+}
+
+.running-app-menu > .header {
+  padding-bottom: 6px;
+}
+
+.running-app-menu > .header .icon {
+  icon-size: 18px;
+  padding: 4px;
+}
+
+.running-app-menu > .header .title {
+  font-size: 0.95em;
+}
