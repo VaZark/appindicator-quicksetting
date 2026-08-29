@@ -1,7 +1,6 @@
 import GObject from "gi://GObject";
 import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
 import { QuickToggle } from "resource:///org/gnome/shell/ui/quickSettings.js";
-import { enableNestedSubmenuTracking } from "../compat.js";
 import { IndicatorItems } from "./indicatorItems.js";
 import { RunningAppItem } from "./runningAppItem.js";
 
@@ -15,7 +14,6 @@ export const RunningAppsWidget = GObject.registerClass(
       this._settings = settings;
       this._configureAppearance();
       this._initializeItems();
-      this._disableNestedSubmenuTracking = enableNestedSubmenuTracking(this.menu);
       this._connectWidgetSignals();
     }
 
@@ -78,9 +76,6 @@ export const RunningAppsWidget = GObject.registerClass(
       }
       this._settingsChangedId = 0;
       this._settings = null;
-
-      this._disableNestedSubmenuTracking?.();
-      this._disableNestedSubmenuTracking = null;
 
       this._items.destroyAll();
     }
