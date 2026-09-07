@@ -2,7 +2,7 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import { ExtensionController } from "./src/controllers/extensionController.js";
 import { ProtocolController } from "./src/protocol/protocolController.js";
-import { RunningAppsWidget } from "./src/ui/runningAppsWidget.js";
+import { RunningAppsWidget } from "./src/ui/indicator/runningAppsWidget.js";
 
 export default class AppIndicatorQuickSettingsExtension extends Extension {
   enable() {

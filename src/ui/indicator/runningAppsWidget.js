@@ -1,6 +1,12 @@
 import GObject from "gi://GObject";
 import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
 import { QuickToggle } from "resource:///org/gnome/shell/ui/quickSettings.js";
+import {
+  ACTIVE_APPS_KEY,
+  APP_OVERRIDES_KEY,
+  readAppOverrides,
+  orderAppItems,
+} from "../../utils/appOverrides.js";
 import { IndicatorItems } from "./indicatorItems.js";
 import { RunningAppItem } from "./runningAppItem.js";
 import { setOpenedSubMenu } from "./submenuState.js";
@@ -13,6 +19,7 @@ export const RunningAppsWidget = GObject.registerClass(
       super._init({ hasMenu: true, iconName: "go-next-symbolic" });
 
       this._settings = settings;
+      this._settings.set_strv(ACTIVE_APPS_KEY, []);
       this._configureAppearance();
       this._initializeItems();
       this._overrideSubmenuTracking();
@@ -70,7 +77,23 @@ export const RunningAppsWidget = GObject.registerClass(
       };
     }
 
+    _syncOrder() {
+      const ordered = orderAppItems(
+        this._items.values,
+        readAppOverrides(this._settings),
+        (item) => item.appId,
+      );
+      for (const [index, item] of ordered.entries()) {
+        this.menu.moveMenuItem(item, index);
+        // PopupMenuBase moves only the row; keep its submenu immediately after it.
+        item.menu.actor.get_parent().set_child_above_sibling(item.menu.actor, item.actor);
+      }
+    }
+
     _connectWidgetSignals() {
+      this._overridesChangedId = this._settings.connect(`changed::${APP_OVERRIDES_KEY}`, () =>
+        this._syncOrder(),
+      );
       this._settingsChangedId = this._settings.connect(`changed::${MAX_MENU_HEIGHT_KEY}`, () =>
         this._syncMaxMenuHeight(),
       );
@@ -87,11 +110,24 @@ export const RunningAppsWidget = GObject.registerClass(
     }
 
     addIndicator(indicator) {
-      if (this._items.add(indicator)) this._syncVisibility();
+      if (this._items.add(indicator)) {
+        this._syncOrder();
+        this._syncActiveApps();
+        this._syncVisibility();
+      }
     }
 
     removeIndicator(indicator) {
-      if (this._items.remove(indicator)) this._syncVisibility();
+      if (this._items.remove(indicator)) {
+        this._syncActiveApps();
+        this._syncVisibility();
+      }
+    }
+
+    _syncActiveApps() {
+      this._settings.set_strv(ACTIVE_APPS_KEY, [
+        ...new Set(this._items.values.map((item) => item.appId)),
+      ]);
     }
 
     _syncVisibility() {
@@ -108,6 +144,9 @@ export const RunningAppsWidget = GObject.registerClass(
         this._settings.disconnect(this._settingsChangedId);
       }
       this._settingsChangedId = 0;
+      if (this._overridesChangedId) this._settings.disconnect(this._overridesChangedId);
+      this._overridesChangedId = 0;
+      this._settings.set_strv(ACTIVE_APPS_KEY, []);
       this._settings = null;
 
       /*

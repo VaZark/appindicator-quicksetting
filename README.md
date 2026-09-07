@@ -14,6 +14,11 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
   - [x] App icon and menu
   - [x] Submenus
   - [x] Scrollable on overflow with a configurable maximum height
+- [x] Preferences
+  - [x] Custom labels
+  - [x] Custom Ordering
+  - [x] Hide select indicators
+  - [x] Hide apps posting "passive" indicator
 
 > [!NOTE]
 > This extension provides the `org.kde.StatusNotifierWatcher` service itself.
@@ -22,40 +27,9 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 >
 > Any future filtering will control which applications appear in this extension. It will not route excluded applications to a separate system tray extension.
 
-## Development
+## Preferences
 
-### Development Environment Setup
-
-1. Create a symlink to the extension so changes are immediately available when you restart or refresh the nested Wayland session:
-
-```sh
-ln -s path/to/appindicator-quicksetting@vazark.github.io \
-  ~/.local/share/gnome-shell/extensions/appindicator-quicksetting@vazark.github.io
-```
-
-2. Compile the settings schema (and repeat this after changing it):
-
-```sh
-npm run schemas
-```
-
-3. Start a nested GNOME Shell development environment:
-
-```sh
-dbus-run-session gnome-shell --devkit --wayland
-```
-
-### Build
-
-Create an installable GNOME Shell extension bundle with:
-
-```sh
-npm run build
-```
-
-The bundle is written to `dist/appindicator-quicksetting@vazark.github.io.shell-extension.zip`. It contains only the extension runtime files, license, and attribution. Tests, package metadata, dependencies, and development configuration are excluded.
-
-### Preferences
+> _Disclaimer: Persistence depends on the app providing a stable ID._
 
 Open the preferences window from an extension manager or from the command line:
 
@@ -65,17 +39,13 @@ gnome-extensions prefs appindicator-quicksetting@vazark.github.io
 
 The maximum Running Apps menu height is stored with GSettings and applied immediately while the extension is enabled.
 
-### Menu stress-test indicator
+The **Apps** preferences page has separate **Labels**, **Ordering**, and **Hide** lists containing only saved overrides. Click **Add override** in the relevant list to pick a currently running indicator app, including hidden or passive apps. Selecting an app that already has that type of override closes the picker and focuses and highlights the existing action without changing its value.
 
-With the extension enabled, run:
+Saved overrides remain editable after an app exits. Labels and ordering show the saved value alongside symbolic edit and delete buttons. Click edit to change the value, then confirm with the checkmark (or Enter for labels) or discard changes with undo. An empty label restores the app’s name. Deleting an override requires confirmation and restores its default. Adding an app to **Hide** hides it immediately; this list has no switches. Delete its entry to unhide it. The picker updates as apps register or exit; it is empty while the extension is disabled.
 
-```sh
-npm run mock:indicator
-```
+Lower ordering priorities appear first, with a default of 0. Apps with equal priorities retain their registration order. Hiding an app also hides its attention indicator; turn off its switch to restore it (subject to the global passive-indicator setting).
 
-This publishes a disposable StatusNotifierItem containing short, long, and deeply nested DBusMenu submenus for testing.
-
-Go through the package json for other possible tests
+Overrides are stored together per app in the `app-overrides` GSettings JSON object, keyed by the app’s StatusNotifierItem `Id`, with `name`, `label`, `order`, and `hidden` fields. Multiple indicators with the same ID share overrides.
 
 ## Credits
 

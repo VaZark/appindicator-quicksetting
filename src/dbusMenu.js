@@ -4,7 +4,7 @@ import Meta from "gi://Meta";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { DBUS_MENU_IFACE } from "./protocol/interfaces.js";
-import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./ui/submenuLayout.js";
+import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./ui/indicator/submenuLayout.js";
 import { normalizeIconName, setDbusMenuIconData } from "./utils/iconUtils.js";
 import { createSignalManager } from "./utils/lifecycle.js";
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { IndicatorItems } from "../src/ui/indicatorItems.js";
+import { IndicatorItems } from "../src/ui/indicator/indicatorItems.js";
 
 function createHarness() {
   const menuItems = [];
@@ -59,4 +59,21 @@ test("visibility follows rendered items rather than registered indicators", () =
   assert.equal(items.hasVisibleItems, true);
   items.remove({ uniqueId: "active" });
   assert.equal(items.hasVisibleItems, false);
+});
+
+test("active app IDs include hidden apps and survive removal of another instance", () => {
+  const items = new IndicatorItems(
+    (indicator) => ({ appId: indicator.id, visible: false, destroy() {} }),
+    () => {},
+  );
+  items.add({ uniqueId: "first", id: "chat" });
+  items.add({ uniqueId: "second", id: "chat" });
+  items.add({ uniqueId: "third", id: "music" });
+  assert.deepEqual(items.appIds, ["chat", "music"]);
+  items.remove({ uniqueId: "first" });
+  assert.deepEqual(items.appIds, ["chat", "music"]);
+  items.remove({ uniqueId: "second" });
+  assert.deepEqual(items.appIds, ["music"]);
+  items.destroyAll();
+  assert.deepEqual(items.appIds, []);
 });

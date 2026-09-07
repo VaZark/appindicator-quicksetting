@@ -4,6 +4,16 @@
     id="org.gnome.shell.extensions.appindicator-quicksetting"
     path="/org/gnome/shell/extensions/appindicator-quicksetting/"
   >
+    <key name="active-apps" type="as">
+      <default>[]</default>
+      <summary>Currently registered application IDs</summary>
+      <description>Runtime list used by preferences, including hidden and passive apps. Cleared when the extension starts or stops.</description>
+    </key>
+    <key name="app-overrides" type="s">
+      <default>'{}'</default>
+      <summary>Per-application overrides</summary>
+      <description>JSON object keyed by StatusNotifierItem Id, containing the discovered name, custom label, hidden state, and ordering priority for each application. Equal priorities retain registration order.</description>
+    </key>
     <key name="max-menu-height" type="i">
       <default>600</default>
       <range min="200" max="1200" />

@@ -5,6 +5,14 @@ export class IndicatorItems {
     this._items = new Map();
   }
 
+  get appIds() {
+    return [...new Set(this.values.map((item) => item.appId))];
+  }
+
+  get values() {
+    return [...this._items.values()];
+  }
+
   get size() {
     return this._items.size;
   }
