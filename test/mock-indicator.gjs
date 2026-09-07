@@ -5,7 +5,10 @@
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 
-const BUS_NAME = "org.example.AppIndicatorMenuTest";
+const passive = ARGV.includes("--passive");
+const BUS_NAME = passive
+  ? "org.example.AppIndicatorPassiveTest"
+  : "org.example.AppIndicatorMenuTest";
 const ITEM_PATH = "/StatusNotifierItem";
 const MENU_PATH = "/Menu";
 const WATCHER_NAME = "org.kde.StatusNotifierWatcher";
@@ -136,13 +139,13 @@ const statusNotifier = {
     return "ApplicationStatus";
   },
   get Id() {
-    return "appindicator-menu-test";
+    return passive ? "appindicator-passive-test" : "appindicator-menu-test";
   },
   get Title() {
-    return "VPN Menu Stress Test";
+    return passive ? "Passive Indicator Test" : "VPN Menu Stress Test";
   },
   get Status() {
-    return "Active";
+    return passive ? "Passive" : "Active";
   },
   get IconName() {
     return "network-vpn-symbolic";
@@ -189,7 +192,7 @@ function registerWithWatcher() {
       1000,
       null,
     );
-    print("Mock indicator registered. Open Quick Settings → Running Apps.");
+    print(`Mock indicator registered (${statusNotifier.Status}). Open Quick Settings → Running Apps.`);
     return GLib.SOURCE_REMOVE;
   } catch (error) {
     printerr(`Waiting for ${WATCHER_NAME}: ${error.message}`);

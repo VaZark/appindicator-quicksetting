@@ -23,6 +23,7 @@
     "schemas": "glib-compile-schemas --strict schemas",
     "test": "node --test",
     "mock:indicator": "gjs -m test/mock-indicator.gjs",
+    "mock:indicator:passive": "gjs -m test/mock-indicator.gjs --passive",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check"
   },

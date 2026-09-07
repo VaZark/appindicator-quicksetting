@@ -75,6 +75,8 @@ npm run mock:indicator
 
 This publishes a disposable StatusNotifierItem containing short, long, and deeply nested DBusMenu submenus for testing.
 
+Go through the package json for other possible tests
+
 ## Credits
 
 A lot of the implementation is based on the [AppIndicator/KStatusNotifierItem](https://github.com/ubuntu/gnome-shell-extension-appindicator) extension.
