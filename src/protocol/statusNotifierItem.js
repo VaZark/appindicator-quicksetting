@@ -24,26 +24,38 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     this._destroyed = false;
     this._properties = new Map();
     this._appName = null;
+    this._appIcon = null;
     this._cancellable = new Gio.Cancellable();
     this._signals = createSignalManager();
 
-    this._proxy = this._createProxy(busName, objectPath);
-    this._connectProxySignals();
-    this._loadCachedProperties();
+    this._proxy = null;
+    this._refreshes = new Map();
     this._connectAppSystemSignals();
-    this._updateAppName();
+    this._initialize();
   }
 
-  _createProxy(busName, objectPath) {
-    return Gio.DBusProxy.new_for_bus_sync(
-      Gio.BusType.SESSION,
-      Gio.DBusProxyFlags.NONE,
-      null,
-      busName,
-      objectPath,
-      STATUS_NOTIFIER_ITEM_IFACE,
-      null,
-    );
+  async _initialize() {
+    try {
+      const proxy = await Gio.DBusProxy.new(
+        Gio.DBus.session,
+        Gio.DBusProxyFlags.NONE,
+        null,
+        this.busName,
+        this.objectPath,
+        STATUS_NOTIFIER_ITEM_IFACE,
+        this._cancellable,
+      );
+      if (this._destroyed) return;
+      this._proxy = proxy;
+      this._connectProxySignals();
+      this._loadCachedProperties();
+      this._emitPropertyChanges(new Set(this._properties.keys()));
+      this._updateAppName();
+    } catch (e) {
+      if (this._destroyed) return;
+      logError(e, `Unable to initialize StatusNotifierItem ${this.uniqueId}`);
+      this.destroy();
+    }
   }
 
   _connectProxySignals() {
@@ -67,19 +79,20 @@ export class StatusNotifierItem extends Signals.EventEmitter {
   }
 
   async _updateAppName() {
-    if (this._destroyed || this._appName || this._appNameLookupPending) return;
+    if (this._destroyed || this._appNameLookupPending) return;
 
     this._appNameLookupPending = true;
 
     try {
-      const result = await dbusCall(
-        Gio.DBus.session,
+      const result = await Gio.DBus.session.call(
         "org.freedesktop.DBus",
         "/",
         "org.freedesktop.DBus",
         "GetConnectionUnixProcessID",
         new GLib.Variant("(s)", [this.busName]),
         new GLib.VariantType("(u)"),
+        Gio.DBusCallFlags.NONE,
+        -1,
         this._cancellable,
       );
       if (this._destroyed) return;
@@ -88,9 +101,13 @@ export class StatusNotifierItem extends Signals.EventEmitter {
         Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo ??
         this._getFlatpakAppInfo(pid);
       const appName = appInfo?.get_display_name();
+      const appIcon = appInfo?.get_icon() ?? null;
 
-      if (!this._destroyed && appName && appName !== this._appName) {
-        this._appName = appName;
+      if (this._destroyed) return;
+      const iconChanged = appIcon && (!this._appIcon || !appIcon.equal(this._appIcon));
+      if ((appName && appName !== this._appName) || iconChanged) {
+        this._appName = appName ?? this._appName;
+        this._appIcon = appIcon ?? this._appIcon;
         this.emit("changed");
       }
     } catch (e) {
@@ -191,35 +208,51 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     }
   }
 
-  _refreshAndEmit(propertyNames, signal) {
-    this._refreshMany(propertyNames);
-    this.emit(signal);
+  async _refreshAndEmit(propertyNames, signal) {
+    await Promise.all(propertyNames.map((name) => this._refreshProperty(name)));
+    if (!this._destroyed) this.emit(signal);
   }
 
-  _refreshMany(names) {
-    for (const name of names) this._refreshProperty(name);
-  }
-
-  _refreshProperty(name) {
+  async _refreshProperty(name) {
     if (this._destroyed) return;
 
+    // Keep at most one request per property in flight. A signal arriving while
+    // it is pending requests one more read, without blocking Shell or flooding D-Bus.
+    const pending = this._refreshes.get(name);
+    if (pending) {
+      pending.dirty = true;
+      return pending.promise;
+    }
+    const state = { dirty: false };
+    this._refreshes.set(name, state);
+    state.promise = (async () => {
+      do {
+        state.dirty = false;
+        try {
+          const result = await Gio.DBus.session.call(
+            this.busName,
+            this.objectPath,
+            "org.freedesktop.DBus.Properties",
+            "Get",
+            new GLib.Variant("(ss)", [STATUS_NOTIFIER_ITEM_IFACE, name]),
+            new GLib.VariantType("(v)"),
+            Gio.DBusCallFlags.NONE,
+            1000,
+            this._cancellable,
+          );
+          if (!this._destroyed) {
+            const [value] = result.deep_unpack();
+            this._properties.set(name, value);
+          }
+        } catch {
+          // Optional properties may be absent; cancellation also ends the loop.
+        }
+      } while (state.dirty && !this._destroyed);
+    })();
     try {
-      const result = Gio.DBus.session.call_sync(
-        this.busName,
-        this.objectPath,
-        "org.freedesktop.DBus.Properties",
-        "Get",
-        new GLib.Variant("(ss)", [STATUS_NOTIFIER_ITEM_IFACE, name]),
-        new GLib.VariantType("(v)"),
-        Gio.DBusCallFlags.NONE,
-        1000,
-        null,
-      );
-
-      const [value] = result.deep_unpack();
-      this._properties.set(name, value);
-    } catch {
-      /* Optional property not provided by this implementation. */
+      await state.promise;
+    } finally {
+      this._refreshes.delete(name);
     }
   }
 
@@ -252,6 +285,10 @@ export class StatusNotifierItem extends Signals.EventEmitter {
 
   get appName() {
     return this._appName;
+  }
+
+  get appIcon() {
+    return this._appIcon;
   }
 
   get label() {
@@ -347,36 +384,4 @@ export class StatusNotifierItem extends Signals.EventEmitter {
     this._proxy = null;
     this._properties.clear();
   }
-}
-
-function dbusCall(
-  connection,
-  busName,
-  objectPath,
-  interfaceName,
-  method,
-  params,
-  replyType,
-  cancellable,
-) {
-  return new Promise((resolve, reject) => {
-    connection.call(
-      busName,
-      objectPath,
-      interfaceName,
-      method,
-      params,
-      replyType,
-      Gio.DBusCallFlags.NONE,
-      -1,
-      cancellable,
-      (source, result) => {
-        try {
-          resolve(source.call_finish(result));
-        } catch (e) {
-          reject(e);
-        }
-      },
-    );
-  });
 }

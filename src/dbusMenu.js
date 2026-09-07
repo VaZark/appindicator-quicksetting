@@ -23,37 +23,45 @@ export class DBusMenuClient {
     this._laterIds = new Set();
     this._signals = createSignalManager();
 
-    this._proxy = Gio.DBusProxy.new_for_bus_sync(
-      Gio.BusType.SESSION,
-      Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES,
-      null,
-      busName,
-      objectPath,
-      DBUS_MENU_IFACE,
-      null,
-    );
+    this._proxy = null;
+    this._initialize();
+  }
 
-    this._signals.connect(this._proxy, "g-signal", (_proxy, _sender, signal, _params) => {
-      if (signal === "LayoutUpdated" || signal === "ItemsPropertiesUpdated") {
-        this.reload();
-      }
-    });
+  async _initialize() {
+    try {
+      const proxy = await Gio.DBusProxy.new(
+        Gio.DBus.session,
+        Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES,
+        null,
+        this._busName,
+        this._objectPath,
+        DBUS_MENU_IFACE,
+        this._cancellable,
+      );
+      if (this._destroyed) return;
+      this._proxy = proxy;
+      this._signals.connect(proxy, "g-signal", (_proxy, _sender, signal, _params) => {
+        if (signal === "LayoutUpdated" || signal === "ItemsPropertiesUpdated") this.reload();
+      });
+      this.reload();
+    } catch (e) {
+      if (!this._destroyed) logError(e, "Unable to initialize DBusMenu");
+    }
   }
 
   attachToMenu(menu) {
     this._menu = menu;
     this._signals.connect(menu, "open-state-changed", (_menu, open) => {
-      if (!open) return;
-
-      this._prepareAndReload(0);
+      this.event(0, open ? "opened" : "closed");
+      if (open) this._prepareAndReload(0);
     });
 
     this._prepareAndReload(0);
   }
 
-  _prepareAndReload(id) {
-    this.aboutToShow(id);
-    this.reload();
+  async _prepareAndReload(id) {
+    await this.aboutToShow(id, false);
+    await this.reload();
   }
 
   async reload() {
@@ -290,7 +298,7 @@ export class DBusMenuClient {
     );
   }
 
-  async aboutToShow(id) {
+  async aboutToShow(id, reload = true) {
     if (this._destroyed) return;
 
     try {
@@ -310,7 +318,7 @@ export class DBusMenuClient {
 
       if (result.is_of_type(new GLib.VariantType("(b)"))) {
         const [changed] = result.deep_unpack();
-        if (changed) {
+        if (changed && reload) {
           this.reload();
         }
       }

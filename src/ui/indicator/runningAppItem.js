@@ -85,7 +85,12 @@ export const RunningAppItem = GObject.registerClass(
       const pixmaps = attention ? this._indicator.attentionIconPixmap : this._indicator.iconPixmap;
       const success = setSniIcon(
         this._icon,
-        { name, themePath: this._indicator.iconThemePath, pixmaps },
+        {
+          name,
+          themePath: this._indicator.iconThemePath,
+          pixmaps,
+          appIcon: this._indicator.appIcon,
+        },
         20,
       );
 
