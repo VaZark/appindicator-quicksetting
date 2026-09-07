@@ -44,10 +44,10 @@ export function orderAppItems(items, records, getId) {
 }
 
 export function addAppOverride(settings, id, type) {
-  const defaults = { label: "", order: 0, hidden: false };
+  const defaults = { label: "", order: 0, hidden: true };
   if (!id || !Object.hasOwn(defaults, type)) return false;
   const record = getAppOverride(readAppOverrides(settings), id);
-  if (Object.hasOwn(record, type)) return false;
+  if (type === "hidden" ? record.hidden === true : Object.hasOwn(record, type)) return false;
   updateAppOverride(settings, id, { [type]: defaults[type] });
   return true;
 }

@@ -75,7 +75,7 @@ export default class AppIndicatorQuickSettingsPreferences extends ExtensionPrefe
       {
         type: "hidden",
         title: _("Hide"),
-        description: _("Hide apps even when they need attention."),
+        description: _("Apps in this list are hidden, even when they need attention."),
       },
     ];
     const groups = new Map();
@@ -141,6 +141,34 @@ export default class AppIndicatorQuickSettingsPreferences extends ExtensionPrefe
       button.connect("clicked", callback);
       return button;
     };
+    const iconButton = (iconName, label, callback) => {
+      const button = new Gtk.Button({ iconName, tooltipText: label, valign: Gtk.Align.CENTER });
+      button.update_property([Gtk.AccessibleProperty.LABEL], [label]);
+      button.add_css_class("flat");
+      button.connect("clicked", callback);
+      return button;
+    };
+    const confirmRemoval = (id, type, appName) => {
+      const dialog = new Adw.MessageDialog({
+        transientFor: window,
+        modal: true,
+        destroyWithParent: true,
+        heading: type === "hidden" ? _("Show app?") : _("Delete override?"),
+        body:
+          type === "hidden"
+            ? _("Remove from the hidden apps list:") + " " + appName
+            : _("Restore the default setting for:") + " " + appName,
+      });
+      dialog.add_response("cancel", _("Cancel"));
+      dialog.add_response("delete", _("Delete"));
+      dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE);
+      dialog.set_default_response("cancel");
+      dialog.set_close_response("cancel");
+      dialog.connect("response", (_dialog, response) => {
+        if (response === "delete" && !closed) save(id, { [type]: undefined }, true);
+      });
+      dialog.present();
+    };
     const openPicker = ({ type, title }) => {
       if (picker) {
         picker.present();
@@ -177,7 +205,8 @@ export default class AppIndicatorQuickSettingsPreferences extends ExtensionPrefe
             }),
           );
         for (const id of ids) {
-          const existing = Object.hasOwn(getAppOverride(records, id), type);
+          const record = getAppOverride(records, id);
+          const existing = type === "hidden" ? record.hidden === true : Object.hasOwn(record, type);
           const row = new Adw.ActionRow({
             title: name(records, id),
             subtitle: existing ? id + " — " + _("Override already exists") : id,
@@ -233,7 +262,9 @@ export default class AppIndicatorQuickSettingsPreferences extends ExtensionPrefe
           group.add(row);
           rows.push([group, row]);
         };
-        const overrides = entries.filter(([, record]) => Object.hasOwn(record, type));
+        const overrides = entries.filter(([, record]) =>
+          type === "hidden" ? record.hidden === true : Object.hasOwn(record, type),
+        );
         if (!overrides.length)
           add(
             new Adw.ActionRow({
@@ -247,40 +278,76 @@ export default class AppIndicatorQuickSettingsPreferences extends ExtensionPrefe
             subtitle: id,
             useMarkup: false,
           });
-          let control;
-          if (type === "label") {
-            control = new Gtk.Entry({
-              text: typeof record.label === "string" ? record.label : "",
-              placeholderText: _("Default app name"),
-              valign: Gtk.Align.CENTER,
-              widthChars: 16,
-            });
-            const apply = () => save(id, { label: control.text.trim() });
-            control.connect("activate", apply);
-            row.add_suffix(control);
-            row.add_suffix(makeButton(_("Apply"), apply));
-          } else if (type === "order") {
-            control = new Gtk.SpinButton({
-              adjustment: new Gtk.Adjustment({
-                lower: -10000,
-                upper: 10000,
-                stepIncrement: 1,
-                pageIncrement: 10,
-              }),
-              numeric: true,
-              valign: Gtk.Align.CENTER,
-            });
-            control.value = Number.isSafeInteger(record.order) ? record.order : 0;
-            control.connect("value-changed", () => save(id, { order: control.get_value_as_int() }));
-            row.add_suffix(control);
+          const actions = new Gtk.Box({ spacing: 6, valign: Gtk.Align.CENTER });
+          row.add_suffix(actions);
+          const remove = iconButton("user-trash-symbolic", _("Delete override"), () =>
+            confirmRemoval(id, type, name(records, id)),
+          );
+          if (type === "hidden") {
+            actions.append(remove);
+            row.activatable_widget = remove;
+            controls.get(type).set(id, { row, control: remove });
           } else {
-            control = new Gtk.Switch({ active: record.hidden === true, valign: Gtk.Align.CENTER });
-            control.connect("notify::active", () => save(id, { hidden: control.active }));
-            row.add_suffix(control);
+            const value = new Gtk.Label({
+              label:
+                type === "label"
+                  ? record.label || _("Default app name")
+                  : String(record.order ?? 0),
+              ellipsize: 3,
+              maxWidthChars: 24,
+            });
+            let editor;
+            if (type === "label") {
+              editor = new Gtk.Entry({ placeholderText: _("Default app name"), widthChars: 16 });
+            } else {
+              editor = new Gtk.SpinButton({
+                adjustment: new Gtk.Adjustment({
+                  lower: -10000,
+                  upper: 10000,
+                  stepIncrement: 1,
+                  pageIncrement: 10,
+                }),
+                numeric: true,
+              });
+            }
+            const setEditing = (editing) => {
+              value.visible = !editing;
+              edit.visible = !editing;
+              remove.visible = !editing;
+              editor.visible = editing;
+              confirm.visible = editing;
+              undo.visible = editing;
+              row.activatable_widget = editing ? editor : edit;
+              if (editing) {
+                if (type === "label") editor.text = record.label ?? "";
+                else editor.value = record.order ?? 0;
+                editor.grab_focus();
+              } else {
+                edit.grab_focus();
+              }
+            };
+            const apply = () => {
+              if (type === "order") editor.update();
+              const next = type === "label" ? editor.text.trim() : editor.get_value_as_int();
+              save(id, { [type]: next });
+              record[type] = next;
+              value.label = type === "label" ? next || _("Default app name") : String(next);
+              setEditing(false);
+            };
+            const edit = iconButton("document-edit-symbolic", _("Edit override"), () =>
+              setEditing(true),
+            );
+            const confirm = iconButton("object-select-symbolic", _("Confirm changes"), apply);
+            const undo = iconButton("edit-undo-symbolic", _("Discard changes"), () =>
+              setEditing(false),
+            );
+            if (type === "label") editor.connect("activate", apply);
+            for (const widget of [value, editor, edit, remove, confirm, undo])
+              actions.append(widget);
+            editor.visible = confirm.visible = undo.visible = false;
+            row.activatable_widget = edit;
+            controls.get(type).set(id, { row, control: edit });
           }
-          row.activatable_widget = control;
-          row.add_suffix(makeButton(_("Remove"), () => save(id, { [type]: undefined }, true)));
-          controls.get(type).set(id, { row, control });
           add(row);
         }
       }

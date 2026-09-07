@@ -99,6 +99,16 @@ test("adding an override creates only the selected type and never resets an exis
   assert.equal(addAppOverride(store, "chat", "hidden"), false);
   assert.equal(addAppOverride(store, "chat", "unknown"), false);
   assert.deepEqual(readAppOverrides(store), {
-    chat: { name: "Chat", label: "Work", order: 0, hidden: false },
+    chat: { name: "Chat", label: "Work", order: 0, hidden: true },
+  });
+});
+
+test("adding a previously disabled hide override hides the app", () => {
+  const store = settings();
+  updateAppOverride(store, "chat", { hidden: false, label: "Work" });
+  assert.equal(addAppOverride(store, "chat", "hidden"), true);
+  assert.deepEqual(getAppOverride(readAppOverrides(store), "chat"), {
+    hidden: true,
+    label: "Work",
   });
 });
