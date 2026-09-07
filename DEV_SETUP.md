@@ -32,7 +32,6 @@ dbus-run-session gnome-shell --devkit --wayland
 
 Commands in the other direction use the explicit methods exposed by the protocol-backed indicator and DBus menu objects, such as `activate()`, `scroll()`, `event()`, and `aboutToShow()`.
 
-
 ## Build
 
 Create an installable GNOME Shell extension bundle with:
@@ -43,9 +42,7 @@ npm run build
 
 The bundle is written to `dist/appindicator-quicksetting@vazark.github.io.shell-extension.zip`. It contains only the extension runtime files, license, and attribution. Tests, package metadata, dependencies, and development configuration are excluded.
 
-
 ## Testing
-
 
 ### Extremely long menu tests
 

@@ -27,6 +27,15 @@ _Disclaimer: I have no experience with GTK or GNOME Shell code, so AI was/is hea
 >
 > Any future filtering will control which applications appear in this extension. It will not route excluded applications to a separate system tray extension.
 
+## Manual Installation
+
+```bash
+git clone https://github.com/VaZark/appindicator-quicksetting.git
+cd appindicator-quicksetting
+npm run build
+gnome-extensions install  'dist/appindicator-quicksetting@vazark.github.io.shell-extension.zip'
+```
+
 ## Preferences
 
 > _Disclaimer: Persistence depends on the app providing a stable ID._
@@ -37,13 +46,18 @@ Open the preferences window from an extension manager or from the command line:
 gnome-extensions prefs appindicator-quicksetting@vazark.github.io
 ```
 
-The maximum Running Apps menu height is stored with GSettings and applied immediately while the extension is enabled.
+**Global prefs**
 
-The **Apps** preferences page has separate **Labels**, **Ordering**, and **Hide** lists containing only saved overrides. Click **Add override** in the relevant list to pick a currently running indicator app, including hidden or passive apps. Selecting an app that already has that type of override closes the picker and focuses and highlights the existing action without changing its value.
+1. The maximum Running Apps menu height : to handle really long menus and submenus
+2. Hide passive apps
 
-Saved overrides remain editable after an app exits. Labels and ordering show the saved value alongside symbolic edit and delete buttons. Click edit to change the value, then confirm with the checkmark (or Enter for labels) or discard changes with undo. An empty label restores the app’s name. Deleting an override requires confirmation and restores its default. Adding an app to **Hide** hides it immediately; this list has no switches. Delete its entry to unhide it. The picker updates as apps register or exit; it is empty while the extension is disabled.
+**Per-app override**
 
-Lower ordering priorities appear first, with a default of 0. Apps with equal priorities retain their registration order. Hiding an app also hides its attention indicator; turn off its switch to restore it (subject to the global passive-indicator setting).
+1. Labels : if you want change label (useful when app doesn't have a ui-friendly name)
+2. Ordering : if you need specific ordering
+3. Hide : apps to ignore
+
+Click **Add override** in the relevant list to pick a currently running indicator app, including hidden or passive apps. Selecting an app that already has that type of override closes the picker and focuses and highlights the existing action without changing its value.
 
 Overrides are stored together per app in the `app-overrides` GSettings JSON object, keyed by the app’s StatusNotifierItem `Id`, with `name`, `label`, `order`, and `hidden` fields. Multiple indicators with the same ID share overrides.
 
@@ -58,4 +72,3 @@ A lot of the implementation is based on the [AppIndicator/KStatusNotifierItem](h
 
 - **Modifying GNOME's Background Apps implementation.**
   It relies on GNOME internals that provide no stability guarantees, which risks breaking the extension with every GNOME update.
-
