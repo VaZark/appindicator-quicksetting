@@ -38,8 +38,11 @@ export const RunningAppsWidget = GObject.registerClass(
 
     _initializeItems() {
       this._items = new IndicatorItems(
-        (indicator) => new RunningAppItem(indicator),
-        (item) => this.menu.addMenuItem(item),
+        (indicator) => new RunningAppItem(indicator, this._settings),
+        (item) => {
+          this.menu.addMenuItem(item);
+          item.connect("notify::visible", () => this._syncVisibility());
+        },
       );
       this.visible = false;
     }
@@ -92,7 +95,8 @@ export const RunningAppsWidget = GObject.registerClass(
     }
 
     _syncVisibility() {
-      this.visible = this._items.size > 0;
+      this.visible = this._items.hasVisibleItems;
+      if (!this.visible) this.menu.close();
     }
 
     vfunc_clicked() {

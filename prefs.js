@@ -31,11 +31,23 @@ export default class AppIndicatorQuickSettingsPreferences extends ExtensionPrefe
     });
     appearanceGroup.add(maxMenuHeight);
 
+    const hidePassiveIndicators = new Adw.SwitchRow({
+      title: _("Hide passive indicators"),
+      subtitle: _("Only show passive apps when they become active or need attention"),
+    });
+    appearanceGroup.add(hidePassiveIndicators);
+
     window._settings = this.getSettings();
     maxMenuHeight.value = window._settings.get_int("max-menu-height");
     maxMenuHeight.connect("notify::value", () => {
       window._settings?.set_int("max-menu-height", Math.round(maxMenuHeight.value));
     });
+    window._settings.bind(
+      "hide-passive-indicators",
+      hidePassiveIndicators,
+      "active",
+      0,
+    );
     window.connect("close-request", () => {
       window._settings = null;
     });
