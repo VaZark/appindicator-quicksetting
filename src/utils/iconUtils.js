@@ -24,7 +24,7 @@ export { normalizeIconName } from "./iconNames.js";
  */
 export function setSniIcon(
   actor,
-  { name = null, themePath = null, pixmaps = null },
+  { name = null, themePath = null, pixmaps = null, appIcon = null },
   preferredSize = 20,
 ) {
   resetIcon(actor);
@@ -39,13 +39,21 @@ export function setSniIcon(
     if (file && setFileIcon(actor, file)) return true;
   }
 
-  if (name) {
+  // A nonempty name is not proof that the host theme contains the icon.
+  if (name && !name.startsWith("/") && new St.IconTheme().has_icon(normalizeIconName(name))) {
     actor.gicon = new Gio.ThemedIcon({ name: normalizeIconName(name) });
 
     return true;
   }
 
   if (pixmaps && setSniPixmap(actor, pixmaps, preferredSize)) return true;
+
+  // Desktop entries resolve Flatpak's exported icon names through the host's
+  // XDG icon paths, without interpreting sandbox paths such as /app as host paths.
+  if (appIcon) {
+    actor.gicon = appIcon;
+    return true;
+  }
 
   return false;
 }
