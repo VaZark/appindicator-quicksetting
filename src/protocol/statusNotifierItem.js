@@ -82,6 +82,7 @@ export class StatusNotifierItem extends Signals.EventEmitter {
         new GLib.VariantType("(u)"),
         this._cancellable,
       );
+      if (this._destroyed) return;
       const [pid] = result.deepUnpack();
       const appInfo =
         Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo ??
@@ -322,12 +323,12 @@ export class StatusNotifierItem extends Signals.EventEmitter {
       null,
       Gio.DBusCallFlags.NONE,
       -1,
-      null,
+      this._cancellable,
       (_connection, result) => {
         try {
           Gio.DBus.session.call_finish(result);
         } catch (e) {
-          logError(e, `StatusNotifierItem.${method}`);
+          if (!this._destroyed) logError(e, `StatusNotifierItem.${method}`);
         }
       },
     );

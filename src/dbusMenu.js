@@ -1,10 +1,15 @@
+import Atk from "gi://Atk";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import Meta from "gi://Meta";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { DBUS_MENU_IFACE } from "./protocol/interfaces.js";
-import { previewStyle, revealAdjustment, SUBMENU_PREVIEW_ITEMS } from "./ui/indicator/submenuLayout.js";
+import {
+  previewStyle,
+  revealAdjustment,
+  SUBMENU_PREVIEW_ITEMS,
+} from "./ui/indicator/submenuLayout.js";
 import { normalizeIconName, setDbusMenuIconData } from "./utils/iconUtils.js";
 import { createSignalManager } from "./utils/lifecycle.js";
 
@@ -13,6 +18,7 @@ export class DBusMenuClient {
     this._busName = busName;
     this._objectPath = objectPath;
     this._destroyed = false;
+    this._cancellable = new Gio.Cancellable();
     this._menu = null;
     this._laterIds = new Set();
     this._signals = createSignalManager();
@@ -65,7 +71,7 @@ export class DBusMenuClient {
         null,
         Gio.DBusCallFlags.NONE,
         3000,
-        null,
+        this._cancellable,
       );
 
       if (this._destroyed || !this._menu) {
@@ -76,6 +82,7 @@ export class DBusMenuClient {
       const layout = normalizeVariant(unpacked[1]);
       this._render(layout);
     } catch (e) {
+      if (this._destroyed) return;
       if (e.matches?.(Gio.DBusError, Gio.DBusError.UNKNOWN_METHOD)) {
         return;
       }
@@ -139,11 +146,16 @@ export class DBusMenuClient {
   _applyItemState(item, props) {
     item.setSensitive(props.enabled !== false);
 
-    if (props["toggle-type"] === "checkmark" && props["toggle-state"] > 0) {
-      item.setOrnament(PopupMenu.Ornament.CHECK);
-    } else if (props["toggle-type"] === "radio" && props["toggle-state"] > 0) {
-      item.setOrnament(PopupMenu.Ornament.DOT);
+    const checked = props["toggle-state"] > 0;
+    if (props["toggle-type"] === "checkmark") {
+      item.accessible_role = Atk.Role.CHECK_MENU_ITEM;
+      item.setOrnament(checked ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+    } else if (props["toggle-type"] === "radio") {
+      item.accessible_role = Atk.Role.RADIO_MENU_ITEM;
+      item.setOrnament(checked ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NO_DOT);
     }
+    if (props["toggle-state"] === -1 && props["toggle-type"] === "checkmark")
+      item.add_accessible_state(Atk.StateType.INDETERMINATE);
   }
 
   _populateSubmenu(item, id, childNodes) {
@@ -267,12 +279,12 @@ export class DBusMenuClient {
       null,
       Gio.DBusCallFlags.NONE,
       2000,
-      null,
+      this._cancellable,
       (_connection, result) => {
         try {
           Gio.DBus.session.call_finish(result);
         } catch (e) {
-          logError(e, "DBusMenu.Event");
+          if (!this._destroyed) logError(e, "DBusMenu.Event");
         }
       },
     );
@@ -291,7 +303,7 @@ export class DBusMenuClient {
         null,
         Gio.DBusCallFlags.NONE,
         1000,
-        null,
+        this._cancellable,
       );
 
       if (!result) return;
@@ -303,6 +315,7 @@ export class DBusMenuClient {
         }
       }
     } catch (e) {
+      if (this._destroyed) return;
       /*
        * Some implementations omit or break
        * AboutToShow.
@@ -322,6 +335,7 @@ export class DBusMenuClient {
     if (this._destroyed) return;
 
     this._destroyed = true;
+    this._cancellable.cancel();
     const laters = global.compositor.get_laters();
 
     for (const id of this._laterIds) laters.remove(id);

@@ -11,6 +11,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
     super();
 
     this._destroyed = false;
+    this._cancellable = new Gio.Cancellable();
     this._items = new Map();
 
     this._dbusImpl = null;
@@ -50,7 +51,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
   }
 
   _onBusAcquired(connection) {
-    this._connection = connection;
+    if (!this._destroyed) this._connection = connection;
   }
 
   _handleNameAcquired(connection) {
@@ -72,6 +73,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
   }
 
   _scheduleItemDiscovery() {
+    this._cancelItemDiscovery();
     this._idleSourceId = GLib.idle_add(GLib.PRIORITY_LOW, () => {
       this._idleSourceId = 0;
       if (!this._destroyed) this._discoverExistingItems();
@@ -183,7 +185,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
         new GLib.VariantType("(s)"),
         Gio.DBusCallFlags.NONE,
         1000,
-        null,
+        this._cancellable,
       );
 
       const [owner] = result.deep_unpack();
@@ -195,6 +197,8 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
   }
 
   _register(busName, objectPath, service = null) {
+    if (this._destroyed) return null;
+
     const key = `${busName}${objectPath}`;
 
     if (this._items.has(key)) return this._items.get(key);
@@ -272,13 +276,15 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
         new GLib.VariantType("(as)"),
         Gio.DBusCallFlags.NONE,
         2000,
-        null,
+        this._cancellable,
       );
     } catch (e) {
-      logError(e, "Unable to enumerate session bus");
+      if (!this._destroyed) logError(e, "Unable to enumerate session bus");
 
       return;
     }
+
+    if (this._destroyed) return;
 
     const [names] = result.deep_unpack();
 
@@ -300,6 +306,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
 
       const owner = await this._resolveBusName(name);
 
+      if (this._destroyed) return;
       if (!owner) continue;
 
       this._register(owner, DEFAULT_ITEM_PATH, name);
@@ -322,6 +329,7 @@ export class StatusNotifierWatcher extends Signals.EventEmitter {
     if (this._destroyed) return;
 
     this._destroyed = true;
+    this._cancellable.cancel();
     this._cancelItemDiscovery();
     this._destroyItems();
     this._unexportWatcher();
