@@ -1,17 +1,17 @@
 import GObject from "gi://GObject";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
-import { DBusMenuClient } from "../dbusMenu.js";
-import { SNIStatus } from "../protocol/statusNotifierItem.js";
-import { getIndicatorName } from "../utils/appNames.js";
+import { DBusMenuClient } from "../../dbusMenu.js";
+import { SNIStatus } from "../../protocol/statusNotifierItem.js";
+import { getIndicatorName } from "../../utils/appNames.js";
 import {
   APP_OVERRIDES_KEY,
   readAppOverrides,
   getAppOverride,
   updateAppOverride,
-} from "../utils/appOverrides.js";
-import { setSniIcon } from "../utils/iconUtils.js";
-import { createSignalManager, resetDisposable } from "../utils/lifecycle.js";
+} from "../../utils/appOverrides.js";
+import { setSniIcon } from "../../utils/iconUtils.js";
+import { createSignalManager, resetDisposable } from "../../utils/lifecycle.js";
 
 const HIDE_PASSIVE_INDICATORS_KEY = "hide-passive-indicators";
 

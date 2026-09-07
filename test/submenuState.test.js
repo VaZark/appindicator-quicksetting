@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { setOpenedSubMenu } from "../src/ui/submenuState.js";
+import { setOpenedSubMenu } from "../src/ui/indicator/submenuState.js";
 
 function createMenu(parent = null) {
   return {

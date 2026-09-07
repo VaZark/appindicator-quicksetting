@@ -43,11 +43,21 @@ export function orderAppItems(items, records, getId) {
   return [...items].sort((a, b) => getAppOrder(records, getId(a)) - getAppOrder(records, getId(b)));
 }
 
+export function getAppOverrideName(records, id) {
+  const { name } = getAppOverride(records, id);
+  return typeof name === "string" && name ? name : id;
+}
+
+export function hasAppOverride(record, type) {
+  if (type === "hidden") return record.hidden === true;
+  return Object.hasOwn(record, type);
+}
+
 export function addAppOverride(settings, id, type) {
   const defaults = { label: "", order: 0, hidden: true };
   if (!id || !Object.hasOwn(defaults, type)) return false;
   const record = getAppOverride(readAppOverrides(settings), id);
-  if (type === "hidden" ? record.hidden === true : Object.hasOwn(record, type)) return false;
+  if (hasAppOverride(record, type)) return false;
   updateAppOverride(settings, id, { [type]: defaults[type] });
   return true;
 }

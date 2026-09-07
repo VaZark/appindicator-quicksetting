@@ -6,7 +6,7 @@ import {
   APP_OVERRIDES_KEY,
   readAppOverrides,
   orderAppItems,
-} from "../utils/appOverrides.js";
+} from "../../utils/appOverrides.js";
 import { IndicatorItems } from "./indicatorItems.js";
 import { RunningAppItem } from "./runningAppItem.js";
 import { setOpenedSubMenu } from "./submenuState.js";
