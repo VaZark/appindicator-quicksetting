@@ -21,6 +21,18 @@ npm run schemas
 dbus-run-session gnome-shell --devkit --wayland
 ```
 
+## Source layout
+
+- `controllers/` coordinates extension lifecycle and passes protocol messages to the UI.
+- `protocol/` owns StatusNotifier DBus registration, models, interfaces, and watcher lifecycle.
+- `ui/` contains GNOME Shell actors, menu items, layout, and presentation state.
+- `utils/` contains stateless naming and icon helpers.
+- `compat.js` is the home for version-dispatched compatibility functions when supported GNOME releases differ.
+- `dbusMenu.js` remains at the root because it is the shared boundary between DBusMenu protocol calls and GNOME menu rendering.
+
+Commands in the other direction use the explicit methods exposed by the protocol-backed indicator and DBus menu objects, such as `activate()`, `scroll()`, `event()`, and `aboutToShow()`.
+
+
 ## Build
 
 Create an installable GNOME Shell extension bundle with:
@@ -72,3 +84,55 @@ For persistence, save a custom label on A, a priority on B, and hiding on C. Res
 
 The command prints the checks grouped by app and their indicator IDs. Stop it with Ctrl+C. The fixture does not change settings itself; saved overrides remain editable after it exits. Clear custom labels, reset priorities to 0, and switch hiding off to repeat from defaults.
 
+## Translations
+
+UI code uses symbolic keys, for example `_("running_apps")`. The English source
+text lives in `po/en.po`:
+
+```po
+msgid "running_apps"
+msgstr "Running Apps"
+```
+
+When adding or changing a message, edit `en.po`, use its key in the UI, and run:
+
+```sh
+npm run translations
+```
+
+This validates catalogs, regenerates the POT template with English reference
+comments, and generates `src/utils/english.js`. Commit both generated files;
+this keeps symlinked development installations working. `npm run pot` is an alias.
+The build also runs this step. GNU gettext and the project's npm development
+dependencies must be installed.
+
+The shared translation helper first looks up the user's locale with gettext.
+Missing catalogs, empty/untranslated entries, and the C locale fall back to the
+English messages generated from `en.po`. No process-wide locale is changed.
+
+### Adding a language
+
+Create a catalog (replace `fr` with your locale):
+
+```sh
+msginit --input=po/appindicator-quicksetting@vazark.github.io.pot --locale=fr --output-file=po/fr.po
+```
+
+Keep `msgid` keys unchanged and put translated text in `msgstr`. The `English:`
+comments in the template show what to translate. Preserve placeholders like `%s`.
+Application names, user-defined labels, and application-provided menu text are
+shown as supplied by the application.
+
+Update an existing catalog and build:
+
+```sh
+msgmerge --update po/fr.po po/appindicator-quicksetting@vazark.github.io.pot
+npm run build
+```
+
+For a symlinked installation, compile a locale locally and restart Shell/preferences:
+
+```sh
+mkdir -p locale/fr/LC_MESSAGES
+msgfmt -o locale/fr/LC_MESSAGES/appindicator-quicksetting@vazark.github.io.mo po/fr.po
+```
