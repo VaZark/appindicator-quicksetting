@@ -1,0 +1,180 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: appindicator-quicksetting\n"
+"Content-Type: text/plain; charset=utf-8\n"
+
+#: src/ui/preferences/appPreferences.js:54
+#. English: Add override
+msgid "add_override"
+msgstr ""
+
+#: src/ui/preferences/appPicker.js:18 src/ui/preferences/appPreferences.js:57
+#. English: Add override ? %s
+msgid "add_override_group"
+msgstr ""
+
+#: src/ui/preferences/generalPage.js:13
+#. English: Appearance
+msgid "appearance"
+msgstr ""
+
+#: src/ui/preferences/generalPage.js:14
+#. English: Configure the Running Apps menu
+msgid "appearance_description"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:47
+#. English: Apps
+msgid "apps"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:126
+#. English: Cancel
+msgid "cancel"
+msgstr ""
+
+#: src/ui/preferences/overrideRow.js:62
+#. English: Confirm changes for %s
+msgid "confirm_changes_for_app"
+msgstr ""
+
+#: src/ui/preferences/overrideRow.js:15 src/ui/preferences/overrideRow.js:21
+#. English: Default app name
+msgid "default_app_name"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:127
+#. English: Delete
+msgid "delete"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:120
+#. English: Delete override?
+msgid "delete_override_confirmation"
+msgstr ""
+
+#: src/ui/preferences/overrideRow.js:123
+#. English: Delete override for %s
+msgid "delete_override_for_app"
+msgstr ""
+
+#: src/ui/preferences/overrideRow.js:67
+#. English: Discard changes for %s
+msgid "discard_changes_for_app"
+msgstr ""
+
+#: src/ui/preferences/overrideRow.js:57
+#. English: Edit override for %s
+msgid "edit_override_for_app"
+msgstr ""
+
+#: src/ui/preferences/generalPage.js:7
+#. English: General
+msgid "general"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:21
+#. English: Hide
+msgid "hide"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:21
+#. English: Apps in this list are hidden, even when they need attention.
+msgid "hide_description"
+msgstr ""
+
+#: src/ui/preferences/generalPage.js:31
+#. English: Hide passive indicators
+msgid "hide_passive_indicators"
+msgstr ""
+
+#: src/ui/preferences/generalPage.js:32
+#. English: Only show passive apps when they become active or need attention
+msgid "hide_passive_indicators_description"
+msgstr ""
+
+#: src/ui/preferences/overrideRow.js:51
+#. English: Label for %s
+msgid "label_for_app"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:19
+#. English: Labels
+msgid "labels"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:19
+#. English: Leave a label empty to use the app?s name.
+msgid "labels_description"
+msgstr ""
+
+#: src/ui/preferences/generalPage.js:19
+#. English: Maximum menu height
+msgid "max_menu_height"
+msgstr ""
+
+#: src/ui/preferences/generalPage.js:20
+#. English: The menu becomes scrollable above this height
+msgid "max_menu_height_description"
+msgstr ""
+
+#: src/ui/preferences/appPicker.js:59
+#. English: No active apps
+msgid "no_active_apps"
+msgstr ""
+
+#: src/ui/preferences/appPicker.js:60
+#. English: Start an app with a tray indicator while the extension is enabled.
+msgid "no_active_apps_description"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:149
+#. English: No overrides
+msgid "no_overrides"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:149
+#. English: Add an override to choose an active app.
+msgid "no_overrides_description"
+msgstr ""
+
+#: src/ui/preferences/overrideRow.js:52
+#. English: Order for %s
+msgid "order_for_app"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:20
+#. English: Ordering
+msgid "ordering"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:20
+#. English: Lower numbers first. Default: 0. Ties keep registration order.
+msgid "ordering_description"
+msgstr ""
+
+#: src/ui/preferences/appPicker.js:71
+#. English: %s ? Override already exists
+msgid "override_already_exists"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:123
+#. English: Remove %s from the hidden apps list?
+msgid "remove_hidden_app_confirmation"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:124
+#. English: Restore the default setting for %s?
+msgid "restore_default_confirmation"
+msgstr ""
+
+#: src/ui/indicator/runningAppsWidget.js:31
+#: src/ui/indicator/runningAppsWidget.js:38
+#. English: Running Apps
+msgid "running_apps"
+msgstr ""
+
+#: src/ui/preferences/appPreferences.js:120
+#. English: Show app?
+msgid "show_app_confirmation"
+msgstr ""

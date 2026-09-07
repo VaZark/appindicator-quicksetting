@@ -1,7 +1,6 @@
 import Adw from "gi://Adw";
 import GLib from "gi://GLib";
 import Gtk from "gi://Gtk";
-import { gettext as _ } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
 import {
   ACTIVE_APPS_KEY,
   APP_OVERRIDES_KEY,
@@ -11,26 +10,15 @@ import {
   hasAppOverride,
   addAppOverride,
 } from "../../utils/appOverrides.js";
+import { gettext as _ } from "../../utils/translations.js";
 import { AppPicker } from "./appPicker.js";
 import { createOverrideRow } from "./overrideRow.js";
 
 function getOverrideGroups() {
   return [
-    {
-      type: "label",
-      title: _("Labels"),
-      description: _("Leave a label empty to use the app’s name."),
-    },
-    {
-      type: "order",
-      title: _("Ordering"),
-      description: _("Lower numbers first. Default: 0. Ties keep registration order."),
-    },
-    {
-      type: "hidden",
-      title: _("Hide"),
-      description: _("Apps in this list are hidden, even when they need attention."),
-    },
+    { type: "label", title: _("labels"), description: _("labels_description") },
+    { type: "order", title: _("ordering"), description: _("ordering_description") },
+    { type: "hidden", title: _("hide"), description: _("hide_description") },
   ];
 }
 
@@ -56,14 +44,18 @@ export class AppPreferences {
   }
 
   addPage() {
-    const page = new Adw.PreferencesPage({ title: _("Apps"), iconName: "view-app-grid-symbolic" });
+    const page = new Adw.PreferencesPage({ title: _("apps"), iconName: "view-app-grid-symbolic" });
     this.window.add(page);
     for (const definition of getOverrideGroups()) {
       const group = new Adw.PreferencesGroup({
         title: definition.title,
         description: definition.description,
       });
-      const addButton = new Gtk.Button({ label: _("Add override"), valign: Gtk.Align.CENTER });
+      const addButton = new Gtk.Button({ label: _("add_override"), valign: Gtk.Align.CENTER });
+      addButton.update_property(
+        [Gtk.AccessibleProperty.LABEL],
+        [_("add_override_group").format(definition.title)],
+      );
       addButton.connect("clicked", () => this.openPicker(definition));
       group.set_header_suffix(addButton);
       page.add(group);
@@ -125,14 +117,14 @@ export class AppPreferences {
       transientFor: this.window,
       modal: true,
       destroyWithParent: true,
-      heading: type === "hidden" ? _("Show app?") : _("Delete override?"),
+      heading: type === "hidden" ? _("show_app_confirmation") : _("delete_override_confirmation"),
       body:
         type === "hidden"
-          ? _("Remove from the hidden apps list:") + " " + appName
-          : _("Restore the default setting for:") + " " + appName,
+          ? _("remove_hidden_app_confirmation").format(appName)
+          : _("restore_default_confirmation").format(appName),
     });
-    dialog.add_response("cancel", _("Cancel"));
-    dialog.add_response("delete", _("Delete"));
+    dialog.add_response("cancel", _("cancel"));
+    dialog.add_response("delete", _("delete"));
     dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE);
     dialog.set_default_response("cancel");
     dialog.set_close_response("cancel");
@@ -154,10 +146,7 @@ export class AppPreferences {
       if (!overrides.length) {
         this.addRow(
           group,
-          new Adw.ActionRow({
-            title: _("No overrides"),
-            subtitle: _("Add an override to choose an active app."),
-          }),
+          new Adw.ActionRow({ title: _("no_overrides"), subtitle: _("no_overrides_description") }),
         );
       }
       for (const [id, record] of overrides) this.addOverrideRow(group, type, id, record, records);

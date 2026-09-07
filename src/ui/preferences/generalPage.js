@@ -1,23 +1,23 @@
 import Adw from "gi://Adw";
 import Gtk from "gi://Gtk";
-import { gettext as _ } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
+import { gettext as _ } from "../../utils/translations.js";
 
 export function addGeneralPage(window, settings) {
   const page = new Adw.PreferencesPage({
-    title: _("General"),
+    title: _("general"),
     iconName: "preferences-system-symbolic",
   });
   window.add(page);
 
   const appearanceGroup = new Adw.PreferencesGroup({
-    title: _("Appearance"),
-    description: _("Configure the Running Apps menu"),
+    title: _("appearance"),
+    description: _("appearance_description"),
   });
   page.add(appearanceGroup);
 
   const maxMenuHeight = new Adw.SpinRow({
-    title: _("Maximum menu height"),
-    subtitle: _("The menu becomes scrollable above this height"),
+    title: _("max_menu_height"),
+    subtitle: _("max_menu_height_description"),
     adjustment: new Gtk.Adjustment({
       lower: 200,
       upper: 1200,
@@ -28,8 +28,8 @@ export function addGeneralPage(window, settings) {
   appearanceGroup.add(maxMenuHeight);
 
   const hidePassiveIndicators = new Adw.SwitchRow({
-    title: _("Hide passive indicators"),
-    subtitle: _("Only show passive apps when they become active or need attention"),
+    title: _("hide_passive_indicators"),
+    subtitle: _("hide_passive_indicators_description"),
   });
   appearanceGroup.add(hidePassiveIndicators);
 

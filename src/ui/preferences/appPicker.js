@@ -1,6 +1,5 @@
 import Adw from "gi://Adw";
 import Gtk from "gi://Gtk";
-import { gettext as _ } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
 import {
   ACTIVE_APPS_KEY,
   readAppOverrides,
@@ -8,6 +7,7 @@ import {
   getAppOverrideName,
   hasAppOverride,
 } from "../../utils/appOverrides.js";
+import { gettext as _ } from "../../utils/translations.js";
 
 export class AppPicker {
   constructor(parent, settings, { type, title }, onSelect, onClose) {
@@ -15,7 +15,7 @@ export class AppPicker {
     this.type = type;
     this.onSelect = onSelect;
     this.window = new Adw.Window({
-      title: _("Add override") + " — " + title,
+      title: _("add_override_group").format(title),
       transientFor: parent,
       modal: true,
       destroyWithParent: true,
@@ -56,8 +56,8 @@ export class AppPicker {
     if (!ids.length) {
       this.list.append(
         new Adw.ActionRow({
-          title: _("No active apps"),
-          subtitle: _("Start an app with a tray indicator while the extension is enabled."),
+          title: _("no_active_apps"),
+          subtitle: _("no_active_apps_description"),
         }),
       );
     }
@@ -68,7 +68,7 @@ export class AppPicker {
     const existing = hasAppOverride(getAppOverride(records, id), this.type);
     const row = new Adw.ActionRow({
       title: getAppOverrideName(records, id),
-      subtitle: existing ? id + " — " + _("Override already exists") : id,
+      subtitle: existing ? _("override_already_exists").format(id) : id,
       useMarkup: false,
       activatable: true,
     });

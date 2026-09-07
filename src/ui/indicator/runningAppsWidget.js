@@ -1,5 +1,4 @@
 import GObject from "gi://GObject";
-import { gettext as _ } from "resource:///org/gnome/shell/extensions/extension.js";
 import { QuickToggle } from "resource:///org/gnome/shell/ui/quickSettings.js";
 import {
   ACTIVE_APPS_KEY,
@@ -7,6 +6,7 @@ import {
   readAppOverrides,
   orderAppItems,
 } from "../../utils/appOverrides.js";
+import { gettext as _ } from "../../utils/translations.js";
 import { IndicatorItems } from "./indicatorItems.js";
 import { RunningAppItem } from "./runningAppItem.js";
 import { setOpenedSubMenu } from "./submenuState.js";
@@ -28,14 +28,14 @@ export const RunningAppsWidget = GObject.registerClass(
 
     _configureAppearance() {
       this._syncMaxMenuHeight();
-      this.title = _("Running Apps");
+      this.title = _("running_apps");
 
       // Use the same presentation as GNOME's Background Apps control.
       this.add_style_class_name("background-apps-quick-toggle");
       this._box.set_child_above_sibling(this._icon, null);
 
       this.menu.box.add_style_class_name("running-app-menu");
-      this.menu.setHeader("preferences-desktop-multitasking-symbolic", _("Running Apps"));
+      this.menu.setHeader("preferences-desktop-multitasking-symbolic", _("running_apps"));
     }
 
     _syncMaxMenuHeight() {

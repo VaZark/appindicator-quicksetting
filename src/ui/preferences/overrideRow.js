@@ -1,7 +1,7 @@
 import Adw from "gi://Adw";
 import Gtk from "gi://Gtk";
 import Pango from "gi://Pango";
-import { gettext as _ } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
+import { gettext as _ } from "../../utils/translations.js";
 
 export function createIconButton(iconName, label, onClick) {
   const button = new Gtk.Button({ iconName, tooltipText: label, valign: Gtk.Align.CENTER });
@@ -12,13 +12,13 @@ export function createIconButton(iconName, label, onClick) {
 }
 
 function formatOverrideValue(type, value) {
-  if (type === "label") return value || _("Default app name");
+  if (type === "label") return value || _("default_app_name");
   return String(value ?? 0);
 }
 
 function createOverrideEditor(type) {
   if (type === "label") {
-    return new Gtk.Entry({ placeholderText: _("Default app name"), widthChars: 16 });
+    return new Gtk.Entry({ placeholderText: _("default_app_name"), widthChars: 16 });
   }
   return new Gtk.SpinButton({
     adjustment: new Gtk.Adjustment({
@@ -44,14 +44,28 @@ class EditableOverride {
       maxWidthChars: 24,
     });
     this.editor = createOverrideEditor(type);
-    this.editButton = createIconButton("document-edit-symbolic", _("Edit override"), () =>
-      this.beginEditing(),
+    this.editor.update_property(
+      [Gtk.AccessibleProperty.LABEL],
+      [
+        type === "label"
+          ? _("label_for_app").format(row.title)
+          : _("order_for_app").format(row.title),
+      ],
     );
-    this.confirmButton = createIconButton("object-select-symbolic", _("Confirm changes"), () =>
-      this.confirmChanges(),
+    this.editButton = createIconButton(
+      "document-edit-symbolic",
+      _("edit_override_for_app").format(row.title),
+      () => this.beginEditing(),
     );
-    this.undoButton = createIconButton("edit-undo-symbolic", _("Discard changes"), () =>
-      this.finishEditing(),
+    this.confirmButton = createIconButton(
+      "object-select-symbolic",
+      _("confirm_changes_for_app").format(row.title),
+      () => this.confirmChanges(),
+    );
+    this.undoButton = createIconButton(
+      "edit-undo-symbolic",
+      _("discard_changes_for_app").format(row.title),
+      () => this.finishEditing(),
     );
     this.displayWidgets = [this.valueLabel, this.editButton, removeButton];
     this.editWidgets = [this.editor, this.confirmButton, this.undoButton];
@@ -104,7 +118,11 @@ class EditableOverride {
 export function createOverrideRow({ id, name, type, value, onSave, onRemove }) {
   const row = new Adw.ActionRow({ title: name, subtitle: id, useMarkup: false });
   const actions = new Gtk.Box({ spacing: 6, valign: Gtk.Align.CENTER });
-  const removeButton = createIconButton("user-trash-symbolic", _("Delete override"), onRemove);
+  const removeButton = createIconButton(
+    "user-trash-symbolic",
+    _("delete_override_for_app").format(name),
+    onRemove,
+  );
   row.add_suffix(actions);
   if (type === "hidden") {
     actions.append(removeButton);

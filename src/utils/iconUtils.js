@@ -8,8 +8,6 @@ import { normalizeIconName } from "./iconNames.js";
 
 export { normalizeIconName } from "./iconNames.js";
 
-Gio._promisify(GdkPixbuf.Pixbuf, "new_from_stream_async");
-
 /*
  * Resolve the icon exported by a StatusNotifierItem/AppIndicator.
  *
@@ -135,16 +133,30 @@ export function setSniPixmap(actor, pixmaps, preferredSize = 20) {
 export async function setDbusMenuIconData(actor, iconData) {
   if (!iconData) return false;
 
+  const cancellable = new Gio.Cancellable();
+  const destroyId = actor.connect("destroy", () => cancellable.cancel());
+  let stream;
   try {
     const bytes = getIconDataBytes(iconData);
-    const stream = Gio.MemoryInputStream.new_from_bytes(bytes);
-
-    actor.gicon = await GdkPixbuf.Pixbuf.new_from_stream_async(stream, null);
-
+    stream = Gio.MemoryInputStream.new_from_bytes(bytes);
+    const pixbuf = await new Promise((resolve, reject) => {
+      GdkPixbuf.Pixbuf.new_from_stream_async(stream, cancellable, (_source, result) => {
+        try {
+          resolve(GdkPixbuf.Pixbuf.new_from_stream_finish(result));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+    if (cancellable.is_cancelled()) return false;
+    actor.gicon = pixbuf;
     return true;
   } catch (e) {
-    logError(e, "Unable to decode DBusMenu icon-data");
+    if (!cancellable.is_cancelled()) logError(e, "Unable to decode DBusMenu icon-data");
     return false;
+  } finally {
+    if (!cancellable.is_cancelled()) actor.disconnect(destroyId);
+    stream?.close(null);
   }
 }
 
