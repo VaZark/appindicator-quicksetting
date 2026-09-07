@@ -39,3 +39,24 @@ test("removes and destroys an app item", () => {
   assert.equal(items.remove(indicator), false);
   assert.deepEqual(destroyedIds, [indicator.uniqueId]);
 });
+
+test("visibility follows rendered items rather than registered indicators", () => {
+  const { items } = createHarness();
+  assert.equal(items.hasVisibleItems, false);
+
+  const passive = items.add({ uniqueId: "passive" });
+  passive.visible = false;
+  assert.equal(items.size, 1);
+  assert.equal(items.hasVisibleItems, false);
+
+  passive.visible = true;
+  assert.equal(items.hasVisibleItems, true);
+  passive.visible = false;
+  assert.equal(items.hasVisibleItems, false);
+
+  const active = items.add({ uniqueId: "active" });
+  active.visible = true;
+  assert.equal(items.hasVisibleItems, true);
+  items.remove({ uniqueId: "active" });
+  assert.equal(items.hasVisibleItems, false);
+});

@@ -9,6 +9,13 @@ export class IndicatorItems {
     return this._items.size;
   }
 
+  get hasVisibleItems() {
+    for (const item of this._items.values()) {
+      if (item.visible) return true;
+    }
+    return false;
+  }
+
   add(indicator) {
     if (this._items.has(indicator.uniqueId)) return null;
 
