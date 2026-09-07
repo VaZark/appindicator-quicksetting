@@ -59,12 +59,3 @@ A lot of the implementation is based on the [AppIndicator/KStatusNotifierItem](h
 - **Modifying GNOME's Background Apps implementation.**
   It relies on GNOME internals that provide no stability guarantees, which risks breaking the extension with every GNOME update.
 
-## Translations and accessibility
-
-The extension supports gettext translations for its interface and accessible names.
-See [the translation guide](po/README.md) to contribute a language catalog.
-English is currently the only supplied language. Application-provided menus use
-the language selected by their application.
-
-Release checks for keyboard navigation, Orca, right-to-left layouts, large text,
-and High Contrast are documented in [DEV_SETUP.md](DEV_SETUP.md#translation-and-accessibility-checks).
