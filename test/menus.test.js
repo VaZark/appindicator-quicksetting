@@ -12,8 +12,8 @@ function createMenu(parent = null) {
     _parent: parent,
     closeCalls: [],
     isOpen: true,
-    close(animate) {
-      this.closeCalls.push(animate);
+    close(params) {
+      this.closeCalls.push(params);
       this.isOpen = false;
     },
   };
@@ -51,7 +51,7 @@ test("opening a separate app menu collapses the previous app menu", () => {
 
   setOpenedSubMenu(rootMenu, secondAppMenu);
 
-  assert.deepEqual(firstAppMenu.closeCalls, [true]);
+  assert.deepEqual(firstAppMenu.closeCalls, [{ animate: true }]);
   assert.equal(rootMenu._openedSubMenu, secondAppMenu);
 });
 

@@ -36,7 +36,7 @@ export function isDescendantMenu(menu, ancestor) {
 
 function closeMenu(menu) {
   try {
-    menu.close(true);
+    menu.close({ animate: true });
   } catch {
     // Already closed/disposed.
   }
