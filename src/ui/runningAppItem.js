@@ -4,6 +4,12 @@ import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { DBusMenuClient } from "../dbusMenu.js";
 import { SNIStatus } from "../protocol/statusNotifierItem.js";
 import { getIndicatorName } from "../utils/appNames.js";
+import {
+  APP_OVERRIDES_KEY,
+  readAppOverrides,
+  getAppOverride,
+  updateAppOverride,
+} from "../utils/appOverrides.js";
 import { setSniIcon } from "../utils/iconUtils.js";
 import { createSignalManager, resetDisposable } from "../utils/lifecycle.js";
 
@@ -36,27 +42,41 @@ export const RunningAppItem = GObject.registerClass(
       });
     }
 
+    get appId() {
+      return this._indicator.id;
+    }
+
     _connectIndicatorSignals() {
+      this._signals.connect(this._settings, `changed::${APP_OVERRIDES_KEY}`, () => {
+        this._syncLabel();
+        this._syncVisibility();
+      });
       this._signals.connect(this._indicator, "changed", () => this._sync());
       this._signals.connect(this._indicator, "status-changed", () => this._sync());
       this._signals.connect(this._indicator, "icon-changed", () => this._syncIcon());
       this._signals.connect(this._indicator, "menu-changed", () => this._setupMenu());
-      this._signals.connect(
-        this._settings,
-        `changed::${HIDE_PASSIVE_INDICATORS_KEY}`,
-        () => this._syncVisibility(),
+      this._signals.connect(this._settings, `changed::${HIDE_PASSIVE_INDICATORS_KEY}`, () =>
+        this._syncVisibility(),
       );
     }
 
     _sync() {
-      this.label.text = getIndicatorName(this._indicator);
+      updateAppOverride(this._settings, this.appId, { name: getIndicatorName(this._indicator) });
+      this._syncLabel();
       this._syncVisibility();
       this._syncIcon();
     }
 
+    _syncLabel() {
+      const custom = getAppOverride(readAppOverrides(this._settings), this.appId).label;
+      this.label.text =
+        typeof custom === "string" && custom.trim() ? custom : getIndicatorName(this._indicator);
+    }
+
     _syncVisibility() {
       const hidePassive = this._settings.get_boolean(HIDE_PASSIVE_INDICATORS_KEY);
-      this.visible = !hidePassive || this._indicator.status !== SNIStatus.PASSIVE;
+      const hidden = getAppOverride(readAppOverrides(this._settings), this.appId).hidden === true;
+      this.visible = !hidden && (!hidePassive || this._indicator.status !== SNIStatus.PASSIVE);
     }
 
     _syncIcon() {
