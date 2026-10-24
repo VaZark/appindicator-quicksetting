@@ -1,7 +1,9 @@
 import Atk from "gi://Atk";
+import Clutter from "gi://Clutter";
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import Meta from "gi://Meta";
+import Pango from "gi://Pango";
 import St from "gi://St";
 import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 import { DBUS_MENU_IFACE } from "./protocol/interfaces.js";
@@ -164,6 +166,23 @@ export class DBusMenuClient {
     }
     if (props["toggle-state"] === -1 && props["toggle-type"] === "checkmark")
       item.add_accessible_state(Atk.StateType.INDETERMINATE);
+    if (props["toggle-type"] === "checkmark" || props["toggle-type"] === "radio")
+      this._placeOrnamentAfterLabel(item);
+  }
+
+  // Keep the check right after the text; long labels ellipsize so the check stays visible.
+  _placeOrnamentAfterLabel(item) {
+    const ornament = item._ornamentIcon ?? item._ornamentLabel;
+    const label = item.label;
+    if (!ornament || !label) return;
+
+    label.x_expand = false;
+    label.x_align = Clutter.ActorAlign.START;
+    label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+
+    ornament.x_expand = false;
+    ornament.x_align = Clutter.ActorAlign.START;
+    item.set_child_above_sibling(ornament, label);
   }
 
   _populateSubmenu(item, id, childNodes) {
